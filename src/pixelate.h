@@ -7,16 +7,16 @@ typedef struct pixel
     b32 filled; 
 } pixel;
 
-typedef struct draw_screen
+typedef struct canvas
 {
     v2 dimension; 
     v2 origin; 
     int elements;
-} draw_screen;
+} canvas;
 
 typedef struct app_state
 {
-    draw_screen screen;
+    canvas screen;
 
     v2 app_cursor;
     b32 click_not_set;

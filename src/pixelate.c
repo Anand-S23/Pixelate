@@ -6,23 +6,23 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
 {
     Assert(sizeof(app_state) <= memory->storage_size);
 
-    local_persist int elements = 0;
-
     app_state *state = (app_state *)memory->storage;
     if (!memory->initialized)
     {
         state->screen.dimension = v2(256, 256);
-        elements = (int)state->screen.dimension.x * (int)state->screen.dimension.y;
+        state->screen.elements = (int)state->screen.dimension.x * (int)state->screen.dimension.y;
+        
         state->screen.origin = v2(buffer->width / 2.0f - state->screen.dimension.x / 2.0f, 
                                   buffer->height / 2.0f - state->screen.dimension.y / 2.0f);
-
 
         memory->initialized = 1;
     }
 
-    local_persist pixel screen_pixels[256*256] = {0};
-    screen_pixels[0].filled = 1;
-    screen_pixels[0].color = v3(255, 255, 0);
+    local_persist pixel canvas[32*32] = {0};
+    canvas[0].filled = 1; 
+    canvas[0].color = v3(255, 255, 0);
+    canvas[1].filled = 1; 
+    canvas[1].color = v3(0, 255, 0);
 
     state->app_cursor.x = input->mouse_x - state->screen.origin.x; 
     state->app_cursor.y = input->mouse_y - state->screen.origin.y; 
@@ -44,11 +44,6 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
     {
         state->click_not_set = 1;
     }
-
-    state->screen.origin.x = Max(Min(state->screen.origin.x, 
-                                     buffer->width - state->screen.dimension.x), 0);
-    state->screen.origin.y = Max(Min(state->screen.origin.y, 
-                                     buffer->height - state->screen.dimension.y), 0);
 
     ClearBuffer(buffer);
 
@@ -73,17 +68,11 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
     {
         for (int j = 0; j < state->screen.dimension.x; ++j)
         {
-            if (screen_pixels[(int)state->screen.dimension.x * i + j].filled == 1)
+            if (canvas[(int)state->screen.dimension.x * i + j].filled)
             {
-                DrawFilledRect(buffer, v2(state->screen.origin.x + j, state->screen.origin.y + i), 
-                               v2(1, 1), screen_pixels->color);
+                DrawFilledRect(buffer, v2(state->screen.origin.x + j*8, state->screen.origin.y + i*8), 
+                               v2(8, 8), canvas[(int)state->screen.dimension.x * i + j].color);
             }
         }
     }
-
-
-    // get input 
-    // update state 
-    // render screen 
-    // render ui
 }
