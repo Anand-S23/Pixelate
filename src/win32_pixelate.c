@@ -9,7 +9,7 @@
 global b32 Running = 1; 
 global win32_offscreen_buffer Global_Backbuffer; 
 
-internal void Win32ProcessMessages(input *keyboard_input)
+internal void Win32ProcessMessages(input *input)
 {
     MSG message; 
     while (PeekMessageA(&message, 0, 0, 0, PM_REMOVE))
@@ -45,6 +45,12 @@ internal void Win32ProcessMessages(input *keyboard_input)
                     Running = 0; 
                 }
             } break; 
+
+            case WM_MOUSEWHEEL:
+            {
+                input->prev_scroll_value = input->scroll_value;
+                input->scroll_value = (int)GET_WHEEL_DELTA_WPARAM(message.wParam);
+            } break;
 
             default: 
             {
@@ -195,6 +201,7 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE prev_instance,
                     input.mouse_y = (f32)point.y;
                     input.left_mouse_down = GetKeyState(VK_LBUTTON) & (1 << 15);
                     input.right_mouse_down = GetKeyState(VK_RBUTTON) & (1 << 15);
+                    input.middle_mouse_down = GetKeyState(VK_MBUTTON) & (1 << 15);
                 }
 
                 offscreen_buffer buffer = {0};

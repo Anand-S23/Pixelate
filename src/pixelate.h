@@ -22,6 +22,7 @@ typedef struct app_state
     b32 click_not_set;
     v2 mouse_down_start; 
     v2 offset; 
+    v2 scale;
 } app_state;
 
 internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *input);

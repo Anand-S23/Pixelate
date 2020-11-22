@@ -34,9 +34,11 @@ typedef struct input
     f32 mouse_x;
     f32 mouse_y;
     b32 left_mouse_down;
-    b32 left_mouse_pressed;
     b32 right_mouse_down;
-    b32 right_mouse_pressed;
+    b32 middle_mouse_down;
+    int prev_scroll_value; 
+    int scroll_value;
+    int scroll_delta;
 } input;
 
 typedef struct app_memory

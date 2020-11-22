@@ -10,7 +10,7 @@ typedef struct Texture
 } Texture; 
 
 internal void ClearBuffer(offscreen_buffer *buffer);
-internal void DrawFilledRect(offscreen_buffer *buffer, v2 position, v2 dimension, v3 color);
+internal void DrawFilledRect(offscreen_buffer *buffer, v2 position, v2 dimension, v4 color);
 internal Texture LoadTexture(char *filename);
 internal void BlitTextureToBuffer(offscreen_buffer *buffer, Texture image, v2 position);
 

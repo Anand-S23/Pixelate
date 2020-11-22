@@ -11,31 +11,36 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
     {
         state->screen.dimension = v2(256, 256);
         state->screen.elements = (int)state->screen.dimension.x * (int)state->screen.dimension.y;
-        
         state->screen.origin = v2(buffer->width / 2.0f - state->screen.dimension.x / 2.0f, 
                                   buffer->height / 2.0f - state->screen.dimension.y / 2.0f);
+
+        state->scale = v2(1, 1);
 
         memory->initialized = 1;
     }
 
-    local_persist pixel canvas[32*32] = {0};
-    canvas[0].filled = 1; 
-    canvas[0].color = v3(255, 255, 0);
-    canvas[1].filled = 1; 
-    canvas[1].color = v3(0, 255, 0);
-
     state->app_cursor.x = input->mouse_x - state->screen.origin.x; 
     state->app_cursor.y = input->mouse_y - state->screen.origin.y; 
 
-    if (input->right_mouse_down)
+    if (input->scroll_value == input->prev_scroll_value)
+    {
+        input->scroll_delta = 0; 
+    }
+    else 
+    {
+        input->scroll_delta = input->scroll_value - input->prev_scroll_value;
+    }
+
+    if (input->middle_mouse_down)
     {
         if (state->click_not_set) 
         {
             state->mouse_down_start = v2(state->app_cursor.x, state->app_cursor.y);
             state->click_not_set = 0; 
         }
-        state->offset.x = state->app_cursor.x - state->mouse_down_start.x;
-        state->offset.y = state->app_cursor.y - state->mouse_down_start.y;
+        
+        state->offset.x = (state->app_cursor.x - state->mouse_down_start.x);
+        state->offset.y = (state->app_cursor.y - state->mouse_down_start.y);
 
         state->screen.origin.x += state->offset.x; 
         state->screen.origin.y += state->offset.y; 
@@ -45,11 +50,27 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
         state->click_not_set = 1;
     }
 
+    if (input->left_mouse_down)
+    {
+        state->scale.x = -1;
+        state->scale.y = -1;
+        state->screen.dimension.x += state->scale.x;
+        state->screen.dimension.y += state->scale.y;
+    }
+    else if (input->right_mouse_down)
+    {
+        state->scale.x = 1;
+        state->scale.y = 1;
+        state->screen.dimension.x += state->scale.x;
+        state->screen.dimension.y += state->scale.y;
+    }
+
     ClearBuffer(buffer);
 
     DrawFilledRect(buffer, state->screen.origin, 
-                   v2(256, 256), v3(255, 255, 255));
+                   state->screen.dimension, v4(255, 255, 255, 255));
     
+#if 0
     for (int i = 0; i < state->screen.dimension.y; ++i)
     {
         for (int j = 0; j < state->screen.dimension.x; ++j)
@@ -75,4 +96,7 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
             }
         }
     }
+#endif
+
+    input->prev_scroll_value = input->scroll_value;
 }
