@@ -21,9 +21,9 @@ internal void Win32ProcessMessages(input *input)
             case WM_KEYDOWN:
             case WM_KEYUP:
             {
-                u32 vk_code = (u32)message.wParam;
+                u32 vk_code  = (u32)message.wParam;
                 b32 was_down = ((message.lParam & (1 << 30)) != 0);
-                b32 is_down = ((message.lParam & (1 << 31)) == 0);
+                b32 is_down  = ((message.lParam & (1 << 31)) == 0);
 
                 u32 key_index = 0;
 
