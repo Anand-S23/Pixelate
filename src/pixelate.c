@@ -2,6 +2,12 @@
 #include "renderer.c"
 #include "io.c"
 
+internal v2 GetIndexFromClick(v2 app_cursor)
+{
+    v2 result;
+    
+}
+
 internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *input)
 {
     Assert(sizeof(app_state) <= memory->storage_size);
@@ -10,27 +16,25 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
     if (!memory->initialized)
     {
         state->screen.dimension = v2(256, 256);
-        state->screen.elements = (int)state->screen.dimension.x * (int)state->screen.dimension.y;
+        state->scale = v2(1, 1);
+        state->screen.elements = 64 * 64;
+
         state->screen.origin = v2(buffer->width / 2.0f - state->screen.dimension.x / 2.0f, 
                                   buffer->height / 2.0f - state->screen.dimension.y / 2.0f);
 
-        state->scale = v2(1, 1);
+        // TODO: Use memory->storage instead of call malloc
+        state->screen.pixel_buffer = (pixel *)calloc(state->screen.elements, sizeof(pixel));
 
         memory->initialized = 1;
     }
 
+    // UPDATE 
+
+    // Get mouse input in relation to the canvas
     state->app_cursor.x = input->mouse_x - state->screen.origin.x; 
     state->app_cursor.y = input->mouse_y - state->screen.origin.y; 
 
-    if (input->scroll_value == input->prev_scroll_value)
-    {
-        input->scroll_delta = 0; 
-    }
-    else 
-    {
-        input->scroll_delta = input->scroll_value - input->prev_scroll_value;
-    }
-
+    // Move canvas around
     if (input->middle_mouse_down)
     {
         if (state->click_not_set) 
@@ -50,25 +54,44 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
         state->click_not_set = 1;
     }
 
+    // Scale canvas
+    if (input->scroll_value == input->prev_scroll_value)
+    {
+        input->scroll_delta = 0; 
+    }
+    else 
+    {
+        input->scroll_delta = input->scroll_value - input->prev_scroll_value;
+    }
+
+    // Process drawing and erasing 
     if (input->left_mouse_down)
     {
-        state->scale.x = -1;
-        state->scale.y = -1;
-        state->screen.dimension.x += state->scale.x;
-        state->screen.dimension.y += state->scale.y;
     }
     else if (input->right_mouse_down)
     {
-        state->scale.x = 1;
-        state->scale.y = 1;
-        state->screen.dimension.x += state->scale.x;
-        state->screen.dimension.y += state->scale.y;
     }
+
+    // RENDER
 
     ClearBuffer(buffer);
 
     DrawFilledRect(buffer, state->screen.origin, 
                    state->screen.dimension, v4(255, 255, 255, 255));
+
+    for (int j = 0; j < 64; ++j)
+    {
+        for (int i = 0; i < 64; ++i)
+        {
+            v4 color = v4(0, 255, 255, 255);
+
+            if (state->screen.pixel_buffer[i].filled == 0)
+            {
+                DrawFilledRect(buffer, v2(state->screen.origin.x + i * 4, state->screen.origin.y + j * 4), 
+                                v2(4, 4), color);
+            }
+        }
+    }
     
 #if 0
     for (int i = 0; i < state->screen.dimension.y; ++i)
@@ -98,5 +121,6 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
     }
 #endif
 
+    // TODO: Needs to be moved into platfrom
     input->prev_scroll_value = input->scroll_value;
 }

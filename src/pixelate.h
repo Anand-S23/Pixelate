@@ -3,12 +3,13 @@
 
 typedef struct pixel
 {
-    v3 color;
+    v3 color; 
     b32 filled; 
 } pixel;
 
 typedef struct canvas
 {
+    pixel *pixel_buffer;
     v2 dimension; 
     v2 origin; 
     int elements;
