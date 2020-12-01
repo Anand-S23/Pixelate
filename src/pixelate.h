@@ -13,6 +13,7 @@ typedef struct canvas
     v2 dimension; 
     v2 origin; 
     int elements;
+    v4 current_color;
 } canvas;
 
 typedef struct app_state

@@ -2,10 +2,11 @@
 #include "renderer.c"
 #include "io.c"
 
-internal v2 GetIndexFromClick(v2 app_cursor)
+internal int GetIndexFromClick(v2 app_cursor, int width, int cell_dim)
 {
-    v2 result;
-    
+    int i = (float)((int)app_cursor.x / cell_dim);
+    int j = (float)((int)app_cursor.y / cell_dim);
+    return (i >= 0 && j >= 0) ? i + j * width : -1;
 }
 
 internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *input)
@@ -18,12 +19,13 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
         state->screen.dimension = v2(256, 256);
         state->scale = v2(1, 1);
         state->screen.elements = 64 * 64;
+        // TODO: Use memory->storage instead of call malloc
+        state->screen.pixel_buffer = (pixel *)calloc(state->screen.elements, sizeof(pixel));
 
         state->screen.origin = v2(buffer->width / 2.0f - state->screen.dimension.x / 2.0f, 
                                   buffer->height / 2.0f - state->screen.dimension.y / 2.0f);
 
-        // TODO: Use memory->storage instead of call malloc
-        state->screen.pixel_buffer = (pixel *)calloc(state->screen.elements, sizeof(pixel));
+        state->screen.current_color = v4(0, 0, 0, 255);
 
         memory->initialized = 1;
     }
@@ -67,9 +69,20 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
     // Process drawing and erasing 
     if (input->left_mouse_down)
     {
+        int index = GetIndexFromClick(state->app_cursor, 64, 4);
+        if (index >= 0)
+        {
+            state->screen.pixel_buffer[index].filled = 1; 
+            state->screen.pixel_buffer[index].color = v3(0, 0, 0); 
+        }
     }
     else if (input->right_mouse_down)
     {
+        int index = GetIndexFromClick(state->app_cursor, 64, 4);
+        if (index >= 0)
+        {
+            state->screen.pixel_buffer[index].filled = 0; 
+        }
     }
 
     // RENDER
@@ -79,16 +92,33 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
     DrawFilledRect(buffer, state->screen.origin, 
                    state->screen.dimension, v4(255, 255, 255, 255));
 
+    // NOTE: Currently hard coded for 64 x 64 
     for (int j = 0; j < 64; ++j)
     {
         for (int i = 0; i < 64; ++i)
         {
-            v4 color = v4(0, 255, 255, 255);
-
-            if (state->screen.pixel_buffer[i].filled == 0)
+            if (state->screen.pixel_buffer[i + j * 64].filled == 0)
             {
-                DrawFilledRect(buffer, v2(state->screen.origin.x + i * 4, state->screen.origin.y + j * 4), 
+                v4 color;
+                if ((j / 64) % 2 == (i / 64) % 2)
+                {
+                    color = v4(100, 100, 100, 255);
+                }
+                else 
+                {
+                    color = v4(50, 50, 150, 255);
+                }
+                DrawFilledRect(buffer, 
+                               v2(state->screen.origin.x + i * 4, 
+                                  state->screen.origin.y + j * 4), 
                                 v2(4, 4), color);
+            }
+            else if (state->screen.pixel_buffer[i + j * 64].filled == 1)
+            {
+                DrawFilledRect(buffer, 
+                               v2(state->screen.origin.x + i * 4,
+                                  state->screen.origin.y + j * 4), 
+                               v2(4, 4), state->screen.current_color);
             }
         }
     }
