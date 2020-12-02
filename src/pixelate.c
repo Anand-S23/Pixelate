@@ -1,5 +1,7 @@
 #include "pixelate.h"
+
 #include "renderer.c"
+#include "memory.c"
 #include "io.c"
 
 internal int GetIndexFromClick(v2 app_cursor, int width, int cell_dim)
@@ -16,11 +18,21 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
     app_state *state = (app_state *)memory->storage;
     if (!memory->initialized)
     {
+        state->permanent_arena = InitMemoryArena(memory->storage, 
+                                                 memory->storage_size);
+
+        state->transient_arena = InitMemoryArena(memory->transient_storage, 
+                                                 memory->transient_storage_size);
+
+        AllocateMemoryArena(&state->permanent_arena, sizeof(app_state));
+
         state->screen.dimension = v2(256, 256);
         state->scale = v2(1, 1);
         state->screen.elements = 64 * 64;
         // TODO: Use memory->storage instead of call malloc
-        state->screen.pixel_buffer = (pixel *)calloc(state->screen.elements, sizeof(pixel));
+        // state->screen.pixel_buffer = (pixel *)calloc(state->screen.elements, sizeof(pixel));
+        state->screen.pixel_buffer = AllocateMemoryArena(&state->permanent_arena, 
+                                                         64 * 64 * sizeof(pixel));
 
         state->screen.origin = v2(buffer->width / 2.0f - state->screen.dimension.x / 2.0f, 
                                   buffer->height / 2.0f - state->screen.dimension.y / 2.0f);
@@ -150,7 +162,4 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
         }
     }
 #endif
-
-    // TODO: Needs to be moved into platfrom
-    input->prev_scroll_value = input->scroll_value;
 }
