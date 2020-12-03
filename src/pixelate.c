@@ -11,6 +11,31 @@ internal int GetIndexFromClick(v2 app_cursor, int width, int cell_dim)
     return (i >= 0 && j >= 0) ? i + j * width : -1;
 }
 
+internal void CreateCanvas(app_state *state, int buffer_width, int buffer_height)
+{
+    state->canvas.pixel_buffer = AllocateMemoryArena(&state->permanent_arena, 
+                                                     state->canvas_info.width * 
+                                                     state->canvas_info.height * 
+                                                     sizeof(pixel));
+
+    int constraint = Min(state->canvas_info.width, state->canvas_info.height);
+    int scale = (int)(1.0f / (f32)(constraint / 64 + 1)) * 20;
+    state->canvas.dimension = v2((scale * state->canvas_info.width), 
+                                 (scale * state->canvas_info.height));
+
+    state->canvas.origin = v2(buffer_width / 2.0f - state->canvas.dimension.x / 2.0f, 
+                              buffer_height / 2.0f - state->canvas.dimension.y / 2.0f);
+
+    state->canvas.current_color = v4(0, 0, 0, 255);
+}
+
+internal void GetCanvasSettings(offscreen_buffer *buffer, app_state *state)
+{
+    DrawFilledRect(buffer, v2(buffer->width/2, buffer->height/2), 
+                   v2(256, 256), v4(255, 255, 0, 255));
+}
+
+
 internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *input)
 {
     Assert(sizeof(app_state) <= memory->storage_size);
@@ -18,26 +43,21 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
     app_state *state = (app_state *)memory->storage;
     if (!memory->initialized)
     {
+#if 0
+        if (!state->dimension_set)
+        {
+            GetCanvasSettings(buffer, state);
+            goto end;
+        }
+#endif
+
         state->permanent_arena = InitMemoryArena(memory->storage, 
                                                  memory->storage_size);
-
         state->transient_arena = InitMemoryArena(memory->transient_storage, 
                                                  memory->transient_storage_size);
-
         AllocateMemoryArena(&state->permanent_arena, sizeof(app_state));
 
-        state->screen.dimension = v2(256, 256);
-        state->scale = v2(1, 1);
-        state->screen.elements = 64 * 64;
-        // TODO: Use memory->storage instead of call malloc
-        // state->screen.pixel_buffer = (pixel *)calloc(state->screen.elements, sizeof(pixel));
-        state->screen.pixel_buffer = AllocateMemoryArena(&state->permanent_arena, 
-                                                         64 * 64 * sizeof(pixel));
-
-        state->screen.origin = v2(buffer->width / 2.0f - state->screen.dimension.x / 2.0f, 
-                                  buffer->height / 2.0f - state->screen.dimension.y / 2.0f);
-
-        state->screen.current_color = v4(0, 0, 0, 255);
+        CreateCanvas(state, buffer->width, buffer->height);
 
         memory->initialized = 1;
     }
@@ -45,27 +65,30 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
     // UPDATE 
 
     // Get mouse input in relation to the canvas
-    state->app_cursor.x = input->mouse_x - state->screen.origin.x; 
-    state->app_cursor.y = input->mouse_y - state->screen.origin.y; 
+    state->canvas.cursor.x = input->mouse_x - state->canvas.origin.x; 
+    state->canvas.cursor.y = input->mouse_y - state->canvas.origin.y; 
 
     // Move canvas around
     if (input->middle_mouse_down)
     {
-        if (state->click_not_set) 
+        if (state->camera.click_not_set) 
         {
-            state->mouse_down_start = v2(state->app_cursor.x, state->app_cursor.y);
-            state->click_not_set = 0; 
+            state->camera.mouse_down_start = v2(state->canvas.cursor.x, 
+                                                state->canvas.cursor.y);
+            state->camera.click_not_set = 0; 
         }
         
-        state->offset.x = (state->app_cursor.x - state->mouse_down_start.x);
-        state->offset.y = (state->app_cursor.y - state->mouse_down_start.y);
+        state->camera.offset.x = 
+            (state->canvas.cursor.x - state->camera.mouse_down_start.x);
+        state->camera.offset.y = 
+            (state->canvas.cursor.y - state->camera.mouse_down_start.y);
 
-        state->screen.origin.x += state->offset.x; 
-        state->screen.origin.y += state->offset.y; 
+        state->canvas.origin.x += state->camera.offset.x; 
+        state->canvas.origin.y += state->camera.offset.y; 
     }
     else 
     {
-        state->click_not_set = 1;
+        state->camera.click_not_set = 1;
     }
 
     // Scale canvas
@@ -81,19 +104,19 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
     // Process drawing and erasing 
     if (input->left_mouse_down)
     {
-        int index = GetIndexFromClick(state->app_cursor, 64, 4);
+        int index = GetIndexFromClick(state->canvas.cursor, 64, 4);
         if (index >= 0)
         {
-            state->screen.pixel_buffer[index].filled = 1; 
-            state->screen.pixel_buffer[index].color = v3(0, 0, 0); 
+            state->canvas.pixel_buffer[index].filled = 1; 
+            state->canvas.pixel_buffer[index].color = v3(0, 0, 0); 
         }
     }
     else if (input->right_mouse_down)
     {
-        int index = GetIndexFromClick(state->app_cursor, 64, 4);
+        int index = GetIndexFromClick(state->canvas.cursor, 64, 4);
         if (index >= 0)
         {
-            state->screen.pixel_buffer[index].filled = 0; 
+            state->canvas.pixel_buffer[index].filled = 0; 
         }
     }
 
@@ -101,15 +124,15 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
 
     ClearBuffer(buffer);
 
-    DrawFilledRect(buffer, state->screen.origin, 
-                   state->screen.dimension, v4(255, 255, 255, 255));
+    DrawFilledRect(buffer, state->canvas.origin, 
+                   state->canvas.dimension, v4(255, 255, 255, 255));
 
     // NOTE: Currently hard coded for 64 x 64 
     for (int j = 0; j < 64; ++j)
     {
         for (int i = 0; i < 64; ++i)
         {
-            if (state->screen.pixel_buffer[i + j * 64].filled == 0)
+            if (state->canvas.pixel_buffer[i + j * 64].filled == 0)
             {
                 v4 color;
                 if ((j / 64) % 2 == (i / 64) % 2)
@@ -121,16 +144,16 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
                     color = v4(50, 50, 150, 255);
                 }
                 DrawFilledRect(buffer, 
-                               v2(state->screen.origin.x + i * 4, 
-                                  state->screen.origin.y + j * 4), 
+                               v2(state->canvas.origin.x + i * 4, 
+                                  state->canvas.origin.y + j * 4), 
                                 v2(4, 4), color);
             }
-            else if (state->screen.pixel_buffer[i + j * 64].filled == 1)
+            else if (state->canvas.pixel_buffer[i + j * 64].filled == 1)
             {
                 DrawFilledRect(buffer, 
-                               v2(state->screen.origin.x + i * 4,
-                                  state->screen.origin.y + j * 4), 
-                               v2(4, 4), state->screen.current_color);
+                               v2(state->canvas.origin.x + i * 4,
+                                  state->canvas.origin.y + j * 4), 
+                               v2(4, 4), state->canvas.current_color);
             }
         }
     }
@@ -162,4 +185,6 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
         }
     }
 #endif
+
+    end:;
 }
