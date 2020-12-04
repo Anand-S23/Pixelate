@@ -199,8 +199,8 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE prev_instance,
                     POINT point;
                     GetCursorPos(&point);
                     ScreenToClient(window, &point);
-                    input.mouse_x = (f32)point.x;
-                    input.mouse_y = (f32)point.y;
+                    input.mouse_x = (u32)point.x;
+                    input.mouse_y = (u32)point.y;
                     input.left_mouse_down = GetKeyState(VK_LBUTTON) & (1 << 15);
                     input.right_mouse_down = GetKeyState(VK_RBUTTON) & (1 << 15);
                     input.middle_mouse_down = GetKeyState(VK_MBUTTON) & (1 << 15);

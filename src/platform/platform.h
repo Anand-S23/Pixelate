@@ -31,8 +31,8 @@ enum {
 typedef struct input
 {
     b32 key_down[KEY_MAX];
-    f32 mouse_x;
-    f32 mouse_y;
+    u32 mouse_x;
+    u32 mouse_y;
     b32 left_mouse_down;
     b32 right_mouse_down;
     b32 middle_mouse_down;

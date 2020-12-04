@@ -12,7 +12,7 @@ typedef struct pixel
 typedef struct app_camera
 {
     v2 offset; 
-    v2 scale;
+    int scale;
     b32 click_not_set;
     v2 mouse_down_start; 
 } app_camera;
