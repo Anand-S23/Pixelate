@@ -2,7 +2,7 @@
 #include <SDL.h>
 #include <stdint.h>
 
-#include "platform_pixelate.h"
+#include "linux_pixelate.h"
 #include "math.h"
 #include "platform.h"
 #include "pixelate.c"

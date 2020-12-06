@@ -44,7 +44,7 @@ internal void GetCanvasSettings(offscreen_buffer *buffer, app_state *state)
    // NOTE: Remove this code when ui in place
    state->canvas_info.width = 64; 
    state->canvas_info.height = 64; 
-   state->dimension_set = 0;
+   state->dimension_set = 1;
 }
 
 
@@ -114,7 +114,6 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
     // Process drawing and erasing 
     if (input->left_mouse_down)
     {
-        DrawFilledRect(buffer, v2(input->mouse_x, input->mouse_y), v2(10, 10), v4(255, 255, 0, 255));
         int index = GetIndexFromClick(state->canvas.cursor, 
                                       state->canvas_info.width, 
                                       state->canvas_info.height, 
@@ -137,10 +136,6 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
             state->canvas.pixel_buffer[index].filled = 0; 
         }
     }
-
-    // DrawFilledRect(buffer, state->canvas.origin, 
-    //                state->canvas.dimension, 
-    //                v4(255, 255, 255, 255));
 
     for (int j = 0; j < state->canvas_info.width; ++j)
     {
@@ -172,6 +167,11 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
             }
         }
     }
+
+    // DrawFilledRect(buffer, state->canvas.origin, 
+    //                state->canvas.dimension, 
+    //                v4(155, 155, 155, 155));
+
     
     end:;
 }

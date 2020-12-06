@@ -6,8 +6,39 @@
 #include "platform.h"
 #include "pixelate.c"
 
-global b32 Running = 1; 
+global b32 Running; 
 global win32_offscreen_buffer Global_Backbuffer; 
+global i64 Global_Perf_Count_Frequency;
+global b32 DEBUGGlobalShowCursor;
+global WINDOWPLACEMENT Global_WindowPosition = { sizeof(Global_WindowPosition) };
+
+internal void ToggleFullscreen(HWND window)
+{
+    DWORD style = GetWindowLongA(window, GWL_STYLE);
+    if (style & WS_OVERLAPPEDWINDOW)
+    {
+        MONITORINFO monitor_info = { sizeof(monitor_info) };
+        if (GetWindowPlacement(window, &Global_WindowPosition) &&
+            GetMonitorInfo(MonitorFromWindow(window, MONITOR_DEFAULTTOPRIMARY),
+                           &monitor_info))
+        {
+            SetWindowLongA(window, GWL_STYLE, style & ~WS_OVERLAPPEDWINDOW);
+            SetWindowPos(window, HWND_TOP, 
+                         monitor_info.rcMonitor.left, monitor_info.rcMonitor.top,
+                         monitor_info.rcMonitor.right - monitor_info.rcMonitor.left, 
+                         monitor_info.rcMonitor.bottom - monitor_info.rcMonitor.top, 
+                         SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+        }
+        else 
+        {
+            SetWindowLongA(window, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
+            SetWindowPlacement(window, &Global_WindowPosition);
+            SetWindowPos(window, 0, 0, 0, 0, 0,
+                         SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER |
+                         SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+        }
+    }
+}
 
 internal void Win32ProcessMessages(input *input)
 {
@@ -43,6 +74,13 @@ internal void Win32ProcessMessages(input *input)
                 if ((vk_code == VK_F4) && alt_key_was_down)
                 {
                     Running = 0; 
+                }
+                if ((vk_code == VK_RETURN) && alt_key_was_down)
+                {
+                    if (message.hwnd)
+                    {
+                        ToggleFullscreen(message.hwnd);
+                    }
                 }
             } break; 
 
@@ -123,10 +161,6 @@ LRESULT CALLBACK Win32WindowProc(HWND window, UINT message,
             Running = 0; 
         } break;
 
-        case WM_SIZE: 
-        {
-        } break; 
-
         case WM_SYSKEYDOWN:
         case WM_SYSKEYUP:
         case WM_KEYDOWN:
@@ -156,12 +190,28 @@ LRESULT CALLBACK Win32WindowProc(HWND window, UINT message,
     return result; 
 }
 
+inline LARGE_INTEGER Win32GetWallClock()
+{
+    LARGE_INTEGER result; 
+    QueryPerformanceCounter(&result);
+    return result;
+}
+
+inline f32 Win32GetSecondsElapsed(LARGE_INTEGER start, LARGE_INTEGER end)
+{
+    f32 result = (f32)(end.QuadPart - start.QuadPart) / (f32)Global_Perf_Count_Frequency;
+    return result;
+}
+
 int WINAPI WinMain(HINSTANCE instance, HINSTANCE prev_instance, 
                    LPSTR cmd_line, int cmd_show)
 {
     LARGE_INTEGER perf_count_frequency_result; 
     QueryPerformanceFrequency(&perf_count_frequency_result);
     i64 perf_count_frequency = perf_count_frequency_result.QuadPart;
+
+    UINT desired_scheduler_ms = 1; 
+    b32 sleep_is_granular = (timeBeginPeriod(desired_scheduler_ms) == TIMERR_NOERROR);
     
     Win32ResizeDIBSection(&Global_Backbuffer, 1280, 720);
     WNDCLASSA window_class = {0};
@@ -171,25 +221,49 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE prev_instance,
     window_class.hInstance = instance;
     window_class.lpszClassName = "PixelateWindowClass";
 
+    int moniter_refresh_hz = 60; 
+    int game_update_hz = moniter_refresh_hz / 2;
+    f32 target_fps = 1.0f / (f32)game_update_hz;
+
     if (RegisterClassA(&window_class))
     {
         HWND window = CreateWindowExA(0, window_class.lpszClassName, "Pixelate", 
                                       WS_OVERLAPPEDWINDOW | WS_VISIBLE, 
                                       CW_USEDEFAULT, CW_USEDEFAULT, 
-                                      1280, 720, 0, 0, instance, 0); 
+                                      1280, 720, 0, 0, instance, 0);
 
         if (window)
         {
+            // ToggleFullscreen(window);
+
+            DWORD dw_style = GetWindowLongPtr(window, GWL_STYLE);
+            DWORD dw_ex_style = GetWindowLongPtr( window, GWL_EXSTYLE);
+            RECT rect = { 0, 0, 1280, 720 };
+            AdjustWindowRectEx(&rect, dw_style, 0, dw_ex_style);
+            SetWindowPos(window, NULL, 0, 0, rect.right - rect.left, 
+                         rect.bottom - rect.top, 
+                         SWP_NOZORDER | SWP_NOMOVE);
+
+            window_dimension dimension = GetWindowDimension(window);
+            char str_buffer[256];
+            wsprintf(str_buffer, "%d, %d\n", dimension.width, dimension.height);
+            OutputDebugStringA(str_buffer);
+
             app_memory memory = {0};
             memory.storage_size = Megabytes(64); 
+            memory.transient_storage_size = Megabytes(100);
             memory.storage = VirtualAlloc(0, memory.storage_size,
                                           MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+            memory.transient_storage = VirtualAlloc(0, memory.transient_storage_size,
+                                                        MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
-            LARGE_INTEGER last_counter; 
+            LARGE_INTEGER last_counter = Win32GetWallClock(); 
             QueryPerformanceCounter(&last_counter);
             u64 last_cycle_count = __rdtsc();
 
             input input = {0};
+
+            Running = 1;
 
             while (Running)
             {
@@ -219,16 +293,36 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE prev_instance,
 
                 HDC device_context = GetDC(window);
                 window_dimension dimension = GetWindowDimension(window);
+
                 Win32DisplayBufferInWindow(device_context,
                                            dimension.width, dimension.height,
                                            &Global_Backbuffer);
                 ReleaseDC(window, device_context);
 
-                u64 end_cycle_count = __rdtsc();
+                LARGE_INTEGER work_counter = Win32GetWallClock();
+                f32 work_seconds_elapsed = Win32GetSecondsElapsed(work_counter, last_counter);
 
-                LARGE_INTEGER end_counter;
-                QueryPerformanceCounter(&end_counter);
+                f32 seconds_elapsed_for_frame = work_seconds_elapsed; 
+                if (seconds_elapsed_for_frame < target_fps)
+                {
+                    while (seconds_elapsed_for_frame < target_fps)
+                    {
+                        if (sleep_is_granular)
+                        {
+                            DWORD sleep_ms = (DWORD)(1000.0f * (target_fps - seconds_elapsed_for_frame));
+                            Sleep(sleep_ms);
+                        }
+                        seconds_elapsed_for_frame = Win32GetSecondsElapsed(last_counter, 
+                                                                        Win32GetWallClock());
+                    }
+                }
+                else
+                {
+                    // NOTE: Miss frame
+                    // TODO: Logging
+                }
 
+#if 0
                 u64 cycle_elpased = end_cycle_count - last_cycle_count;
                 i64 counter_elapsed = end_counter.QuadPart - last_counter.QuadPart; 
                 i32 ms_per_frame = (i32)((1000 * counter_elapsed) / perf_count_frequency);
@@ -238,8 +332,13 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE prev_instance,
                 char str_buffer[256];
                 wsprintf(str_buffer, "%dms/f - %dFPS - %dmc/f\n", ms_per_frame, fps, mcpf);
                 //OutputDebugStringA(str_buffer);
+#endif
 
+                LARGE_INTEGER end_counter = Win32GetWallClock();
                 last_counter = end_counter;
+
+                u64 end_cycle_count = __rdtsc();
+                u64 cycle_elpased = end_cycle_count - last_cycle_count;
                 last_cycle_count = end_cycle_count;
             }
         }
