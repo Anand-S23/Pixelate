@@ -3,6 +3,13 @@
 
 #include "memory.h"
 
+typedef enum canvas_state
+{
+    CANVAS_STATE_create, 
+    CANVAS_STATE_edit, 
+    CANVAS_STATE_export
+} canvas_state;
+
 typedef struct pixel
 {
     v3 color; 
@@ -17,18 +24,11 @@ typedef struct app_camera
     v2 mouse_down_start; 
 } app_camera;
 
-typedef struct canvas_settings
-{
-    int width; 
-    int height; 
-    v4 background_color;
-} canvas_settings;
-
 typedef struct canvas
 {
     pixel *pixel_buffer;
-    //int buffer_width;
-    // int buffer_height;
+    int width; 
+    int height; 
     v2 dimension;
     v2 origin;
     v2 cursor;
@@ -41,7 +41,6 @@ typedef struct app_state
     memory_arena transient_arena;
     
     b32 dimension_set;
-    canvas_settings canvas_info;
     canvas canvas;
     app_camera camera;
 } app_state;

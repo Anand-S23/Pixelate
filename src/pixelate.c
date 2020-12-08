@@ -15,14 +15,14 @@ internal int GetIndexFromClick(v2 app_cursor, int width, int height, int cell_di
 internal void CreateCanvas(app_state *state, int buffer_width, int buffer_height)
 {
     state->canvas.pixel_buffer = AllocateMemoryArena(&state->permanent_arena, 
-                                                     state->canvas_info.width * 
-                                                     state->canvas_info.height * 
+                                                     state->canvas.width * 
+                                                     state->canvas.height * 
                                                      sizeof(pixel));
 
-    int constraint = Min(state->canvas_info.width, state->canvas_info.height);
+    int constraint = Min(state->canvas.width, state->canvas.height);
     state->camera.scale = (int)(1.0f / (f32)(constraint / 64 + 1) * 20);
-    state->canvas.dimension = v2((state->camera.scale * state->canvas_info.width), 
-                                 (state->camera.scale * state->canvas_info.height));
+    state->canvas.dimension = v2((state->camera.scale * state->canvas.width), 
+                                 (state->camera.scale * state->canvas.height));
 
     state->canvas.origin = v2(buffer_width / 2.0f - state->canvas.dimension.x / 2.0f, 
                               buffer_height / 2.0f - state->canvas.dimension.y / 2.0f);
@@ -42,8 +42,8 @@ internal void GetCanvasSettings(offscreen_buffer *buffer, app_state *state)
     */
 
    // NOTE: Remove this code when ui in place
-   state->canvas_info.width = 64; 
-   state->canvas_info.height = 64; 
+   state->canvas.width = 64; 
+   state->canvas.height = 64; 
    state->dimension_set = 1;
 }
 
@@ -115,8 +115,8 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
     if (input->left_mouse_down)
     {
         int index = GetIndexFromClick(state->canvas.cursor, 
-                                      state->canvas_info.width, 
-                                      state->canvas_info.height, 
+                                      state->canvas.width, 
+                                      state->canvas.height, 
                                       state->camera.scale);
         if (index >= 0)
         {
@@ -127,8 +127,8 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
     else if (input->right_mouse_down)
     {
         int index = GetIndexFromClick(state->canvas.cursor, 
-                                      state->canvas_info.width,
-                                      state->canvas_info.height,
+                                      state->canvas.width,
+                                      state->canvas.height,
                                       state->camera.scale);
 
         if (index >= 0)
@@ -137,9 +137,9 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
         }
     }
 
-    for (int j = 0; j < state->canvas_info.width; ++j)
+    for (int j = 0; j < state->canvas.width; ++j)
     {
-        for (int i = 0; i < state->canvas_info.height; ++i)
+        for (int i = 0; i < state->canvas.height; ++i)
         {
             if (state->canvas.pixel_buffer[i + j * 64].filled == 0)
             {
@@ -167,11 +167,6 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
             }
         }
     }
-
-    // DrawFilledRect(buffer, state->canvas.origin, 
-    //                state->canvas.dimension, 
-    //                v4(155, 155, 155, 155));
-
     
     end:;
 }

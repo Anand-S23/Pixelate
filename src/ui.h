@@ -15,8 +15,8 @@ typedef enum widget
 {
     UI_button,
     UI_slider,
+    UI_label,
     UI_text_input, 
-    UI_number_picker, 
     UI_color_picker, 
     UI_scroll_bar
 } widget;
