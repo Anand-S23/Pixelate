@@ -1,25 +1,17 @@
 #ifndef UI_H
 #define UI_H
 
-// NOTE: 
-//      UI based on the UI style presented by Ryan Fleury in handmade network game
-//      https://github.com/ryanfleury/handmade_network_game
-
 #define UI_MAX_WIDGETS 128
 #define UI_MAX_AUTO_LAYOUT_GROUPS 16
 
-#define UI_IDGen()   UIIDInit(__LINE__ + UI_SRC_ID, 0)
-#define UI_IDGenI(i) UIIDInit(__LINE__ + UI_SRC_ID, i)
+#define UIIDGen() UIIDInit(__LINE__ + UI_SRC_ID, 0)
+#define UIIDGenI(i) UIIDInit(__LINE__ + UI_SRC_ID, i)
 
-typedef enum widget
+typedef enum widget_type
 {
-    UI_button,
-    UI_slider,
-    UI_label,
-    UI_text_input, 
-    UI_color_picker, 
-    UI_scroll_bar
-} widget;
+    UI_WIDGET_button,
+    UI_WIDGET_slider,
+} widget_type;
 
 typedef struct ui_id
 {
@@ -29,7 +21,7 @@ typedef struct ui_id
 
 typedef struct ui_widget
 {
-    widget type;
+    widget_type type;
     ui_id id;
     v4 rect;
     f32 t_hot;
@@ -37,27 +29,21 @@ typedef struct ui_widget
     
     union
     {
-        struct slider
+        struct Slider
         {
             f32 value;
         } slider;
     };
 } ui_widget;
 
-typedef struct ui_input
-{
-    f32 cursor_x;
-    f32 cursor_y;
-    b32 left_cursor_down;
-    b32 right_cursor_down;
-} ui_input;
-
 typedef struct ui
 {
-    f32 cursor_x;
-    f32 cursor_y;
-    b32 left_cursor_down;
-    b32 right_cursor_down;
+    f32 mouse_x;
+    f32 mouse_y;
+    b32 left_mouse_down;
+    b32 right_mouse_down;
+
+    offscreen_buffer *buffer;
     
     u32 widget_count;
     ui_widget widgets[UI_MAX_WIDGETS];
@@ -69,8 +55,7 @@ typedef struct ui
         v2 position;
         v2 size;
         f32 progress;
-    }
-    auto_layout_stack[UI_MAX_AUTO_LAYOUT_GROUPS];
+    } auto_layout_stack[UI_MAX_AUTO_LAYOUT_GROUPS];
     
     ui_id hot;
     ui_id active;

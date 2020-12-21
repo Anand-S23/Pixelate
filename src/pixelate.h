@@ -5,6 +5,7 @@
 
 typedef enum canvas_state
 {
+    CANVAS_STATE_blank,
     CANVAS_STATE_create, 
     CANVAS_STATE_edit, 
     CANVAS_STATE_export
@@ -39,6 +40,8 @@ typedef struct app_state
 {
     memory_arena permanent_arena;
     memory_arena transient_arena;
+
+    ui ui;
     
     b32 dimension_set;
     canvas canvas;

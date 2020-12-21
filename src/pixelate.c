@@ -2,6 +2,7 @@
 
 #include "renderer.c"
 #include "memory.c"
+#include "ui.c"
 #include "io.c"
 
 internal int GetIndexFromClick(v2 app_cursor, int width, int height, int cell_dim)
@@ -30,23 +31,31 @@ internal void CreateCanvas(app_state *state, int buffer_width, int buffer_height
     state->canvas.current_color = v4(0, 0, 0, 255);
 }
 
-internal void GetCanvasSettings(offscreen_buffer *buffer, app_state *state)
+internal void GetCanvasSettings(offscreen_buffer *buffer, app_state *state, 
+                                input *input)
 {
-    v2 size = v2(buffer->width / 2 - 100, buffer->height / 2);
-    v2 position = v2(buffer->width / 2 - size.x / 2, 
-                     buffer->height / 2 - size.y / 2);
-    DrawFilledRect(buffer, position, size, v4(255, 255, 0, 255));
+    UIBeginFrame(&app->ui, input);
+    {
+        UIPushColumn(&app->ui, v2(32, 32), v2(256, 48));
+        {
+            if(UIButton(&app->ui, UIIDGen(), "uhasfdfiuhsa"))
+            {
+                state->canvas.width  = canvas_width; 
+                state->canvas.height = canvas_height; 
+                state->dimension_set = 1;
+            }
 
-    /* NOTE: psuedo code when ui done
-
-    */
-
-   // NOTE: Remove this code when ui in place
-   state->canvas.width = 64; 
-   state->canvas.height = 64; 
-   state->dimension_set = 1;
+            local_persist f32 slider_value = 0;
+            slider_value = UISlider(&app->ui, UIIDGen(), "sdiojfsdjif", slider_value);
+            
+            DrawFilledCircle(v4(slider_value, slider_value, slider_value, 1.f),
+                             v2(512.f, 512.f),
+                             64.f);
+        }
+        UIPopColumn(&app->ui);
+    }
+    UIEndFrame(&app->ui);
 }
-
 
 internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *input)
 {
@@ -57,7 +66,7 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
     {
         if (!state->dimension_set)
         {
-            GetCanvasSettings(buffer, state);
+            GetCanvasSettings(buffer, state, input);
             goto end;
         }
 
@@ -153,16 +162,16 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
                     color = v4(150, 150, 250, 255);
                 }
                 DrawFilledRect(buffer, 
-                               v2(state->canvas.origin.x + i * state->camera.scale, 
-                                  state->canvas.origin.y + j * state->camera.scale), 
-                               v2(state->camera.scale, state->camera.scale), color);
+                               v4(state->canvas.origin.x + i * state->camera.scale, 
+                                  state->canvas.origin.y + j * state->camera.scale, 
+                                  state->camera.scale, state->camera.scale), color);
             }
             else if (state->canvas.pixel_buffer[i + j * 64].filled == 1)
             {
                 DrawFilledRect(buffer, 
-                               v2(state->canvas.origin.x + i * state->camera.scale, 
-                                  state->canvas.origin.y + j * state->camera.scale), 
-                               v2(state->camera.scale, state->camera.scale), 
+                               v4(state->canvas.origin.x + i * state->camera.scale, 
+                                  state->canvas.origin.y + j * state->camera.scale,
+                                  state->camera.scale, state->camera.scale), 
                                   state->canvas.current_color);
             }
         }

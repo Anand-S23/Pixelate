@@ -26,12 +26,12 @@ internal void ClearBuffer(offscreen_buffer *buffer)
 }
 
 internal void DrawFilledRect(offscreen_buffer *buffer,
-                             v2 position, v2 dimension, v4 color)
+                             v4 rect, v4 color)
 {
-    i32 min_x = Max(0, (i32)position.x);
-    i32 min_y = Max(0, (i32)position.y);
-    i32 max_x = Min((buffer->width), (min_x + (i32)dimension.width));
-    i32 max_y = Min((buffer->height), (min_y + (i32)dimension.height));
+    i32 min_x = Max(0, (i32)rect.x);
+    i32 min_y = Max(0, (i32)rect.y);
+    i32 max_x = Min((buffer->width), (min_x + (i32)rect.width));
+    i32 max_y = Min((buffer->height), (min_y + (i32)rect.height));
     
     u8 *row = (u8 *)buffer->memory + 
               min_x * buffer->bytes_per_pixel + 
