@@ -28,7 +28,7 @@ internal v4 UIGetNextAutoLayoutRect(ui *ui)
     
     if(ui->auto_layout_stack_pos > 0)
     {
-        u32 i = ui->auto_layout_stack_pos-1;
+        u32 i = ui->auto_layout_stack_pos - 1;
         
         rect.x      = ui->auto_layout_stack[i].position.x;
         rect.y      = ui->auto_layout_stack[i].position.y;
@@ -80,7 +80,7 @@ internal void UIEndFrame(ui *ui)
         {
             case UI_WIDGET_window: 
             {
-                v4 titlebar_rect = v4(widget->rect.x, widget->rect.y, widget->rect.width, 20);
+                v4 titlebar_rect = v4(widget->rect.x, widget->rect.y, widget->rect.width, 25);
                 DrawFilledRect(ui->buffer, widget->rect, v4(0.5f, 0.5f, 0.5f, 1.f));
                 DrawFilledRect(ui->buffer, titlebar_rect, v4(1.f, 1.f, 1.f, 1.f));
             } break;
@@ -143,7 +143,7 @@ internal v4 UIWindowP(ui *ui, ui_id id, char *text, v4 rect)
     b32 cursor_is_over = (ui->mouse_x >= rect.x &&
                           ui->mouse_x <= rect.x + rect.width &&
                           ui->mouse_y >= rect.y &&
-                          ui->mouse_y <= rect.y + 20);
+                          ui->mouse_y <= rect.y + 25);
     
     if (!UIIDEqual(ui->hot, id) && cursor_is_over)
     {
@@ -154,29 +154,39 @@ internal v4 UIWindowP(ui *ui, ui_id id, char *text, v4 rect)
         ui->hot = UIIDNull();
     }
 
-    if (UIIDEqual(ui->active, id))
-    {
-        if(!ui->left_mouse_down)
-        {
-            ui->active = UIIDNull();
-        }
-    }
-    else
+    if (!UIIDEqual(ui->active, id))
     {
         if (UIIDEqual(ui->hot, id))
         {
             if (ui->left_mouse_down)
             {
-                local_persist int offset_x = 0;
-                local_persist int offset_y = 0;
-
-                offset_x = ui->mouse_x - rect.x;
-                offset_y = ui->mouse_y - rect.y;
-                rect.x = ui->mouse_x - offset_x;
-                rect.y = ui->mouse_y - offset_y;
-
                 ui->active = id;
             }
+        }
+    }
+    
+    if (UIIDEqual(ui->active, id))
+    {
+        local_persist b32 offset_set = 0;
+        local_persist int offset_x = 0;
+        local_persist int offset_y = 0;
+
+        if (ui->left_mouse_down)
+        {
+            if (!offset_set)
+            {
+                offset_x = ui->mouse_x - rect.x;
+                offset_y = ui->mouse_y - rect.y;
+                offset_set = 1;
+            }
+
+            rect.x = ui->mouse_x - offset_x;
+            rect.y = ui->mouse_y - offset_y;
+        }
+        else
+        {
+            offset_set = 0;
+            ui->active = UIIDNull();
         }
     }
     
@@ -203,8 +213,8 @@ internal void UIBeginWindow(ui *ui, ui_id id, char *text, v4 rect)
         window_rect = UIWindowP(ui, id, text, window_rect);
     }
 
-    UIPushColumn(ui, v2(window_rect.x, window_rect.y + 20), 
-                v2(window_rect.width, rect.height - 20));
+    UIPushColumn(ui, v2(window_rect.x + 25, window_rect.y + 25), 
+                v2(window_rect.width - 50, 75));
 }
 
 internal void UIEndWindow(ui *ui)

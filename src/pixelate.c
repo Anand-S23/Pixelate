@@ -34,12 +34,19 @@ internal void CreateCanvas(app_state *state, int buffer_width, int buffer_height
 internal void GetCanvasSettings(offscreen_buffer *buffer, app_state *state, 
                                 input *input)
 {
+    ClearBuffer(buffer, v4(0.f, 0.f, 0.f, 1.f));
+
     UIBeginFrame(&state->ui, buffer, input);
     {
-        UIBeginWindow(&state->ui, UIIDGen(), "Create a new image", v4(100, 100, 200, 200));
+
+        UIBeginWindow(&state->ui, UIIDGen(), "Create a new image", v4(100, 100, 380, 280));
         {
             local_persist int canvas_width = 64;
             local_persist int canvas_height = 64;
+            
+            if (UIButton(&state->ui, UIIDGen(), "Test"))
+            {
+            }
 
             if (UIButton(&state->ui, UIIDGen(), "Ok"))
             {
