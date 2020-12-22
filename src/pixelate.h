@@ -1,7 +1,8 @@
 #ifndef PIXELATE_H
 #define PIXELATE_H
 
-#include "memory.h"
+//#include "ui.h"
+//#include "memory.h"
 
 typedef enum canvas_state
 {

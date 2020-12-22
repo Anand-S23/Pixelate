@@ -9,7 +9,7 @@ typedef struct Texture
     int channels;
 } Texture; 
 
-internal void ClearBuffer(offscreen_buffer *buffer);
+internal void ClearBuffer(offscreen_buffer *buffer, v4 color);
 internal void DrawFilledRect(offscreen_buffer *buffer, v4 rect, v4 color);
 internal Texture LoadTexture(char *filename);
 internal void BlitTextureToBuffer(offscreen_buffer *buffer, Texture image, v2 position);

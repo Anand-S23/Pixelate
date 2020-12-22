@@ -3,14 +3,18 @@
 
 #define UI_MAX_WIDGETS 128
 #define UI_MAX_AUTO_LAYOUT_GROUPS 16
+#define UI_MAX_WIDGET_ELEMENTS 16
 
+#define UI_SRC_ID 1000
 #define UIIDGen() UIIDInit(__LINE__ + UI_SRC_ID, 0)
 #define UIIDGenI(i) UIIDInit(__LINE__ + UI_SRC_ID, i)
 
 typedef enum widget_type
 {
+    UI_WIDGET_window,
+    UI_WIDGET_menu,
     UI_WIDGET_button,
-    UI_WIDGET_slider,
+    UI_WIDGET_slider
 } widget_type;
 
 typedef struct ui_id
@@ -29,7 +33,7 @@ typedef struct ui_widget
     
     union
     {
-        struct Slider
+        struct slider
         {
             f32 value;
         } slider;

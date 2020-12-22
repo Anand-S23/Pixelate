@@ -1,9 +1,9 @@
-#include "pixelate.h"
-
 #include "renderer.c"
 #include "memory.c"
 #include "ui.c"
 #include "io.c"
+
+#include "pixelate.h"
 
 internal int GetIndexFromClick(v2 app_cursor, int width, int height, int cell_dim)
 {
@@ -28,33 +28,29 @@ internal void CreateCanvas(app_state *state, int buffer_width, int buffer_height
     state->canvas.origin = v2(buffer_width / 2.0f - state->canvas.dimension.x / 2.0f, 
                               buffer_height / 2.0f - state->canvas.dimension.y / 2.0f);
 
-    state->canvas.current_color = v4(0, 0, 0, 255);
+    state->canvas.current_color = v4(0.f, 0.f, 0.f, 1.f);
 }
 
 internal void GetCanvasSettings(offscreen_buffer *buffer, app_state *state, 
                                 input *input)
 {
-    UIBeginFrame(&app->ui, input);
+    UIBeginFrame(&state->ui, buffer, input);
     {
-        UIPushColumn(&app->ui, v2(32, 32), v2(256, 48));
+        UIBeginWindow(&state->ui, UIIDGen(), "Create a new image", v4(100, 100, 200, 200));
         {
-            if(UIButton(&app->ui, UIIDGen(), "uhasfdfiuhsa"))
+            local_persist int canvas_width = 64;
+            local_persist int canvas_height = 64;
+
+            if (UIButton(&state->ui, UIIDGen(), "Ok"))
             {
                 state->canvas.width  = canvas_width; 
                 state->canvas.height = canvas_height; 
                 state->dimension_set = 1;
             }
-
-            local_persist f32 slider_value = 0;
-            slider_value = UISlider(&app->ui, UIIDGen(), "sdiojfsdjif", slider_value);
-            
-            DrawFilledCircle(v4(slider_value, slider_value, slider_value, 1.f),
-                             v2(512.f, 512.f),
-                             64.f);
         }
-        UIPopColumn(&app->ui);
+        UIEndWindow(&state->ui);
     }
-    UIEndFrame(&app->ui);
+    UIEndFrame(&state->ui);
 }
 
 internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *input)
@@ -81,7 +77,7 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
         memory->initialized = 1;
     }
 
-    ClearBuffer(buffer);
+    ClearBuffer(buffer, v4(0.f, 0.f, 0.f, 1.f));
 
     // Get mouse input in relation to the canvas
     state->canvas.cursor.x = input->mouse_x - state->canvas.origin.x;
@@ -130,7 +126,7 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
         if (index >= 0)
         {
             state->canvas.pixel_buffer[index].filled = 1; 
-            state->canvas.pixel_buffer[index].color = v3(0, 0, 0); 
+            state->canvas.pixel_buffer[index].color = v3(0.f, 0.f, 0.f); 
         }
     }
     else if (input->right_mouse_down)
@@ -155,12 +151,13 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
                 v4 color;
                 if (j % 2 == i % 2)
                 {
-                    color = v4(150, 150, 150, 255);
+                    color = v4(0.6f, 0.6f, 0.6f, 1.f);
                 }
                 else 
                 {
-                    color = v4(150, 150, 250, 255);
+                    color = v4(0.6f, 0.6f, 0.98f, 1.f);
                 }
+
                 DrawFilledRect(buffer, 
                                v4(state->canvas.origin.x + i * state->camera.scale, 
                                   state->canvas.origin.y + j * state->camera.scale, 

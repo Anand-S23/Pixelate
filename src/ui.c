@@ -78,6 +78,17 @@ internal void UIEndFrame(ui *ui)
         
         switch(widget->type)
         {
+            case UI_WIDGET_window: 
+            {
+                v4 titlebar_rect = v4(widget->rect.x, widget->rect.y, widget->rect.width, 20);
+                DrawFilledRect(ui->buffer, widget->rect, v4(0.5f, 0.5f, 0.5f, 1.f));
+                DrawFilledRect(ui->buffer, titlebar_rect, v4(1.f, 1.f, 1.f, 1.f));
+            } break;
+
+            case UI_WIDGET_menu:
+            {
+            } break;
+
             case UI_WIDGET_button:
             {
                 v4 color = {
@@ -127,6 +138,80 @@ internal void UIPopColumn(ui *ui)
     }
 }
 
+internal v4 UIWindowP(ui *ui, ui_id id, char *text, v4 rect)
+{
+    b32 cursor_is_over = (ui->mouse_x >= rect.x &&
+                          ui->mouse_x <= rect.x + rect.width &&
+                          ui->mouse_y >= rect.y &&
+                          ui->mouse_y <= rect.y + 20);
+    
+    if (!UIIDEqual(ui->hot, id) && cursor_is_over)
+    {
+        ui->hot = id;
+    }
+    else if (UIIDEqual(ui->hot, id) && !cursor_is_over)
+    {
+        ui->hot = UIIDNull();
+    }
+
+    if (UIIDEqual(ui->active, id))
+    {
+        if(!ui->left_mouse_down)
+        {
+            ui->active = UIIDNull();
+        }
+    }
+    else
+    {
+        if (UIIDEqual(ui->hot, id))
+        {
+            if (ui->left_mouse_down)
+            {
+                local_persist int offset_x = 0;
+                local_persist int offset_y = 0;
+
+                offset_x = ui->mouse_x - rect.x;
+                offset_y = ui->mouse_y - rect.y;
+                rect.x = ui->mouse_x - offset_x;
+                rect.y = ui->mouse_y - offset_y;
+
+                ui->active = id;
+            }
+        }
+    }
+    
+    ui_widget *widget = ui->widgets + ui->widget_count++;
+    widget->type = UI_WIDGET_window;
+    widget->id = id;
+    widget->rect = rect;
+
+    return rect;
+}
+
+internal void UIBeginWindow(ui *ui, ui_id id, char *text, v4 rect)
+{
+    local_persist b32 rect_set = 0;
+    local_persist v4 window_rect = {0};
+
+    if (!rect_set)
+    {
+        window_rect = UIWindowP(ui, id, text, rect);
+        rect_set = 1;
+    }
+    else 
+    {
+        window_rect = UIWindowP(ui, id, text, window_rect);
+    }
+
+    UIPushColumn(ui, v2(window_rect.x, window_rect.y + 20), 
+                v2(window_rect.width, rect.height - 20));
+}
+
+internal void UIEndWindow(ui *ui)
+{
+    UIPopColumn(ui);
+}
+    
 internal b32 UIButtonP(ui *ui, ui_id id, char *text, v4 rect)
 {
     Assert(ui->widget_count < UI_MAX_WIDGETS);
@@ -149,7 +234,7 @@ internal b32 UIButtonP(ui *ui, ui_id id, char *text, v4 rect)
     
     if (UIIDEqual(ui->active, id))
     {
-        if(!ui->left_cursor_down)
+        if(!ui->left_mouse_down)
         {
             is_triggered = UIIDEqual(ui->hot, id);
             ui->active = UIIDNull();
@@ -159,7 +244,7 @@ internal b32 UIButtonP(ui *ui, ui_id id, char *text, v4 rect)
     {
         if (UIIDEqual(ui->hot, id))
         {
-            if (ui->left_cursor_down)
+            if (ui->left_mouse_down)
             {
                 ui->active = id;
             }
@@ -183,7 +268,7 @@ internal b32 UIButton(ui *ui, ui_id id, char *text)
 internal f32 UISliderP(ui *ui, ui_id id, char *text, f32 value, v4 rect)
 {
     Assert(ui->widget_count < UI_MAX_WIDGETS);
-    
+   
     b32 cursor_is_over = (ui->mouse_x >= rect.x &&
                           ui->mouse_x <= rect.x + rect.width &&
                           ui->mouse_y >= rect.y &&
