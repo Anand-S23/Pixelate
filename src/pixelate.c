@@ -2,6 +2,7 @@
 #include "memory.c"
 #include "ui.c"
 #include "io.c"
+#include "linked_list.c"
 
 #include "pixelate.h"
 

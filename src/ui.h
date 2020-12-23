@@ -22,6 +22,13 @@ typedef struct ui_id
     u32 secondary;
 } ui_id;
 
+typedef struct window
+{
+    v4 rect; 
+    b32 is_open;
+} window;
+
+
 typedef struct ui_widget
 {
     widget_type type;
