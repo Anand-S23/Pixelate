@@ -1,16 +1,13 @@
 #ifndef PIXELATE_H
 #define PIXELATE_H
 
-//#include "ui.h"
-//#include "memory.h"
-
-typedef enum canvas_state
+typedef enum canvas_mode
 {
-    CANVAS_STATE_blank,
-    CANVAS_STATE_create, 
-    CANVAS_STATE_edit, 
-    CANVAS_STATE_export
-} canvas_state;
+    CANVAS_MODE_blank,
+    CANVAS_MODE_create, 
+    CANVAS_MODE_edit, 
+    CANVAS_MODE_export
+} canvas_mode;
 
 typedef struct pixel
 {
@@ -44,9 +41,9 @@ typedef struct app_state
 
     ui ui;
     
-    b32 dimension_set;
     canvas canvas;
     app_camera camera;
+    canvas_mode current_mode;
 } app_state;
 
 internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *input);

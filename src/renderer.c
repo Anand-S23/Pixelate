@@ -14,9 +14,9 @@ internal void ClearBuffer(offscreen_buffer *buffer, v4 color)
         u32 *pixel = (u32 *)row;
         for (int x = 0; x < width; ++x)
         {
-            u8 blue  = (u8)(color.r * 255.f);
+            u8 red   = (u8)(color.r * 255.f);
             u8 green = (u8)(color.g * 255.f);
-            u8 red   = (u8)(color.b * 255.f);
+            u8 blue  = (u8)(color.b * 255.f);
             u8 alpha = (u8)(color.a * 255.f);
 
             *pixel++ = ((alpha << 24) | (red << 16) | (green << 8) | blue);
@@ -43,9 +43,9 @@ internal void DrawFilledRect(offscreen_buffer *buffer,
         u32 *pixel = (u32 *)row;
         for(i32 i = min_x; i < max_x; ++i)
         {
-            u8 blue  = (u8)(color.r * 255.f);
+            u8 red   = (u8)(color.r * 255.f);
             u8 green = (u8)(color.g * 255.f);
-            u8 red   = (u8)(color.b * 255.f);
+            u8 blue  = (u8)(color.b * 255.f);
             u8 alpha = (u8)(color.a * 255.f);
 
             *pixel++ = ((alpha << 24) | (red << 16) | (green << 8) | blue);

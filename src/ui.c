@@ -85,10 +85,6 @@ internal void UIEndFrame(ui *ui)
                 DrawFilledRect(ui->buffer, titlebar_rect, v4(1.f, 1.f, 1.f, 1.f));
             } break;
 
-            case UI_WIDGET_menu:
-            {
-            } break;
-
             case UI_WIDGET_button:
             {
                 v4 color = {
@@ -218,6 +214,72 @@ internal void UIBeginWindow(ui *ui, ui_id id, char *text, v4 rect)
 }
 
 internal void UIEndWindow(ui *ui)
+{
+    UIPopColumn(ui);
+}
+
+internal b32 UIMenuP(ui *ui, ui_id id, char *text, v4 rect)
+{
+    Assert(ui->widget_count < UI_MAX_WIDGETS);
+    
+    local_persist b32 is_open = 0;
+    
+    b32 cursor_is_over = (ui->mouse_x >= rect.x &&
+                          ui->mouse_x <= rect.x + rect.width &&
+                          ui->mouse_y >= rect.y &&
+                          ui->mouse_y <= rect.y + rect.height);
+    
+    if (!UIIDEqual(ui->hot, id) && cursor_is_over)
+    {
+        ui->hot = id;
+    }
+    else if (UIIDEqual(ui->hot, id) && !cursor_is_over)
+    {
+        ui->hot = UIIDNull();
+    }
+    
+    if (UIIDEqual(ui->active, id))
+    {
+        if(!ui->left_mouse_down)
+        {
+            is_open = (is_open == 0) ? 1 : 0; 
+            ui->active = UIIDNull();
+        }
+    }
+    else if (UIIDEqual(ui->hot, id))
+    {
+        if (ui->left_mouse_down)
+        {
+            ui->active = id;
+        }
+    }
+    else if (UIIDEqual(ui->hot, UIIDNull()))
+    {
+        if (ui->left_mouse_down && is_open)
+        {
+            is_open = 0;
+        }
+    }
+    
+    ui_widget *widget = ui->widgets + ui->widget_count++;
+    widget->type = UI_WIDGET_button;
+    widget->id = id;
+    widget->rect = rect;
+    
+    return is_open;
+}
+
+internal b32 UIMenu(ui *ui, ui_id id, char *text, 
+                    v4 button_rect, v4 menu_rect)
+{
+    b32 is_open = UIMenuP(ui, id, text, button_rect);
+    UIPushColumn(ui, v2(menu_rect.x, menu_rect.y), 
+                 v2(menu_rect.width, menu_rect.height));
+
+    return is_open;
+}
+
+internal void UIEndMenu(ui *ui)
 {
     UIPopColumn(ui);
 }

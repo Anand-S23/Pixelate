@@ -34,8 +34,6 @@ internal void CreateCanvas(app_state *state, int buffer_width, int buffer_height
 internal void GetCanvasSettings(offscreen_buffer *buffer, app_state *state, 
                                 input *input)
 {
-    ClearBuffer(buffer, v4(0.f, 0.f, 0.f, 1.f));
-
     UIBeginFrame(&state->ui, buffer, input);
     {
 
@@ -44,15 +42,13 @@ internal void GetCanvasSettings(offscreen_buffer *buffer, app_state *state,
             local_persist int canvas_width = 64;
             local_persist int canvas_height = 64;
             
-            if (UIButton(&state->ui, UIIDGen(), "Test"))
-            {
-            }
-
             if (UIButton(&state->ui, UIIDGen(), "Ok"))
             {
                 state->canvas.width  = canvas_width; 
                 state->canvas.height = canvas_height; 
-                state->dimension_set = 1;
+                CreateCanvas(state, buffer->width, buffer->height);
+
+                state->current_mode = CANVAS_MODE_edit;
             }
         }
         UIEndWindow(&state->ui);
@@ -67,31 +63,23 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
     app_state *state = (app_state *)memory->storage;
     if (!memory->initialized)
     {
-        if (!state->dimension_set)
-        {
-            GetCanvasSettings(buffer, state, input);
-            goto end;
-        }
-
         state->permanent_arena = InitMemoryArena(memory->storage, 
                                                  memory->storage_size);
         state->transient_arena = InitMemoryArena(memory->transient_storage, 
                                                  memory->transient_storage_size);
         AllocateMemoryArena(&state->permanent_arena, sizeof(app_state));
 
-        CreateCanvas(state, buffer->width, buffer->height);
+        state->current_mode = CANVAS_MODE_create;
 
         memory->initialized = 1;
     }
-
-    ClearBuffer(buffer, v4(0.f, 0.f, 0.f, 1.f));
 
     // Get mouse input in relation to the canvas
     state->canvas.cursor.x = input->mouse_x - state->canvas.origin.x;
     state->canvas.cursor.y = input->mouse_y - state->canvas.origin.y;
 
     // Move canvas around
-    if (input->middle_mouse_down)
+    if (input->middle_mouse_down && state->current_mode == CANVAS_MODE_edit)
     {
         if (state->camera.click_not_set) 
         {
@@ -114,7 +102,7 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
     }
 
     // Scale canvas
-    if (input->scroll_value == input->prev_scroll_value)
+    if (input->scroll_value == input->prev_scroll_value && state->current_mode == CANVAS_MODE_edit)
     {
         input->scroll_delta = 0; 
     }
@@ -124,24 +112,24 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
     }
 
     // Process drawing and erasing 
-    if (input->left_mouse_down)
+    if (input->left_mouse_down && state->current_mode == CANVAS_MODE_edit)
     {
         int index = GetIndexFromClick(state->canvas.cursor, 
-                                      state->canvas.width, 
-                                      state->canvas.height, 
-                                      state->camera.scale);
+                                    state->canvas.width, 
+                                    state->canvas.height, 
+                                    state->camera.scale);
         if (index >= 0)
         {
             state->canvas.pixel_buffer[index].filled = 1; 
             state->canvas.pixel_buffer[index].color = v3(0.f, 0.f, 0.f); 
         }
     }
-    else if (input->right_mouse_down)
+    else if (input->right_mouse_down && state->current_mode == CANVAS_MODE_edit)
     {
         int index = GetIndexFromClick(state->canvas.cursor, 
-                                      state->canvas.width,
-                                      state->canvas.height,
-                                      state->camera.scale);
+                                    state->canvas.width,
+                                    state->canvas.height,
+                                    state->camera.scale);
 
         if (index >= 0)
         {
@@ -149,37 +137,68 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
         }
     }
 
-    for (int j = 0; j < state->canvas.width; ++j)
-    {
-        for (int i = 0; i < state->canvas.height; ++i)
-        {
-            if (state->canvas.pixel_buffer[i + j * 64].filled == 0)
-            {
-                v4 color;
-                if (j % 2 == i % 2)
-                {
-                    color = v4(0.6f, 0.6f, 0.6f, 1.f);
-                }
-                else 
-                {
-                    color = v4(0.6f, 0.6f, 0.98f, 1.f);
-                }
+    ClearBuffer(buffer, v4(0.22f, 0.22f, 0.24f, 1.f));
 
-                DrawFilledRect(buffer, 
-                               v4(state->canvas.origin.x + i * state->camera.scale, 
-                                  state->canvas.origin.y + j * state->camera.scale, 
-                                  state->camera.scale, state->camera.scale), color);
-            }
-            else if (state->canvas.pixel_buffer[i + j * 64].filled == 1)
+    if (state->current_mode == CANVAS_MODE_edit)
+    {
+        for (int j = 0; j < state->canvas.width; ++j)
+        {
+            for (int i = 0; i < state->canvas.height; ++i)
             {
-                DrawFilledRect(buffer, 
-                               v4(state->canvas.origin.x + i * state->camera.scale, 
-                                  state->canvas.origin.y + j * state->camera.scale,
-                                  state->camera.scale, state->camera.scale), 
-                                  state->canvas.current_color);
+                if (state->canvas.pixel_buffer[i + j * 64].filled == 0)
+                {
+                    v4 color;
+                    if (j % 2 == i % 2)
+                    {
+                        color = v4(0.6f, 0.6f, 0.6f, 1.f);
+                    }
+                    else 
+                    {
+                        color = v4(0.6f, 0.6f, 0.98f, 1.f);
+                    }
+
+                    DrawFilledRect(buffer, 
+                                v4(state->canvas.origin.x + i * state->camera.scale, 
+                                    state->canvas.origin.y + j * state->camera.scale, 
+                                    state->camera.scale, state->camera.scale), color);
+                }
+                else if (state->canvas.pixel_buffer[i + j * 64].filled == 1)
+                {
+                    DrawFilledRect(buffer, 
+                                v4(state->canvas.origin.x + i * state->camera.scale, 
+                                    state->canvas.origin.y + j * state->camera.scale,
+                                    state->camera.scale, state->camera.scale), 
+                                    state->canvas.current_color);
+                }
             }
         }
     }
-    
-    end:;
+    else if (state->current_mode == CANVAS_MODE_create)
+    {
+        // Get canvas create information 
+        GetCanvasSettings(buffer, state, input);
+    }
+
+
+    // UI for tools
+    UIBeginFrame(&state->ui, buffer, input);
+    {
+        if (UIMenu(&state->ui, UIIDGen(), "Pixelate Menu",  
+                   v4(0, 0, 50, 50), v4(50, 0, 100, 50)))
+        {
+            if (UIButton(&state->ui, UIIDGen(), "Menu option 1"))
+            {
+            }
+
+            if (UIButton(&state->ui, UIIDGen(), "Menu option 2"))
+            {
+            }
+
+            if (UIButton(&state->ui, UIIDGen(), "Menu option 3"))
+            {
+            }
+        }
+        UIPopColumn(&state->ui);
+    }
+    UIEndFrame(&state->ui);
 }

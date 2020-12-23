@@ -12,7 +12,6 @@
 typedef enum widget_type
 {
     UI_WIDGET_window,
-    UI_WIDGET_menu,
     UI_WIDGET_button,
     UI_WIDGET_slider
 } widget_type;
