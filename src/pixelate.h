@@ -23,18 +23,13 @@ typedef struct app_camera
     v2 mouse_down_start; 
 } app_camera;
 
-typedef struct pixel_buffer
-{
-    pixel *data;
-    int width; 
-    int height;
-};
-
 #include "linked_list.h"
 
 typedef struct canvas
 {
-    // LINKED LIST pixel_buffer
+    linked_list layers;
+    int width; 
+    int height;
     v2 dimension;
     v2 origin;
     v2 cursor;
@@ -49,6 +44,7 @@ typedef struct app_state
     ui ui;
     
     canvas canvas;
+    node *active_layer;
     app_camera camera;
     canvas_mode current_mode;
 } app_state;

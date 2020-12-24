@@ -2,9 +2,9 @@
 #include "memory.c"
 #include "ui.c"
 #include "io.c"
-#include "linked_list.c"
 
 #include "pixelate.h"
+#include "linked_list.c"
 
 internal int GetIndexFromClick(v2 app_cursor, int width, int height, int cell_dim)
 {
@@ -14,12 +14,21 @@ internal int GetIndexFromClick(v2 app_cursor, int width, int height, int cell_di
     return (i >= 0 && j >= 0 && i <= width && j <= height) ? i + j * width : -1;
 }
 
+internal pixel *CreateLayer(app_state *state)
+{
+    pixel *result = AllocateMemoryArena(&state->permanent_arena, 
+                                        state->canvas.width * 
+                                        state->canvas.height * 
+                                        sizeof(pixel));
+    
+    return result;
+}
+
 internal void CreateCanvas(app_state *state, int buffer_width, int buffer_height)
 {
-    state->canvas.pixel_buffer = AllocateMemoryArena(&state->permanent_arena, 
-                                                     state->canvas.width * 
-                                                     state->canvas.height * 
-                                                     sizeof(pixel));
+    state->canvas.layers = CreateLinkedList();
+    node *inital_layer = Push(&state->canvas.layers, CreateLayer(state));
+    state->active_layer = inital_layer;
 
     int constraint = Min(state->canvas.width, state->canvas.height);
     state->camera.scale = (int)(1.0f / (f32)(constraint / 64 + 1) * 20);
@@ -116,25 +125,25 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
     if (input->left_mouse_down && state->current_mode == CANVAS_MODE_edit)
     {
         int index = GetIndexFromClick(state->canvas.cursor, 
-                                    state->canvas.width, 
-                                    state->canvas.height, 
-                                    state->camera.scale);
+                                      state->canvas.width, 
+                                      state->canvas.height, 
+                                      state->camera.scale);
         if (index >= 0)
         {
-            state->canvas.pixel_buffer[index].filled = 1; 
-            state->canvas.pixel_buffer[index].color = v3(0.f, 0.f, 0.f); 
+            state->active_layer->buffer[index].filled = 1; 
+            state->active_layer->buffer[index].color = v3(0.f, 0.f, 0.f); 
         }
     }
     else if (input->right_mouse_down && state->current_mode == CANVAS_MODE_edit)
     {
         int index = GetIndexFromClick(state->canvas.cursor, 
-                                    state->canvas.width,
-                                    state->canvas.height,
-                                    state->camera.scale);
+                                      state->canvas.width,
+                                      state->canvas.height,
+                                      state->camera.scale);
 
         if (index >= 0)
         {
-            state->canvas.pixel_buffer[index].filled = 0; 
+            state->active_layer->buffer[index].filled = 0; 
         }
     }
 
@@ -146,7 +155,7 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
         {
             for (int i = 0; i < state->canvas.height; ++i)
             {
-                if (state->canvas.pixel_buffer[i + j * 64].filled == 0)
+                if (state->active_layer->buffer[i + j * 64].filled == 0)
                 {
                     v4 color;
                     if (j % 2 == i % 2)
@@ -163,7 +172,7 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
                                     state->canvas.origin.y + j * state->camera.scale, 
                                     state->camera.scale, state->camera.scale), color);
                 }
-                else if (state->canvas.pixel_buffer[i + j * 64].filled == 1)
+                else if (state->active_layer->buffer[i + j * 64].filled == 1)
                 {
                     DrawFilledRect(buffer, 
                                 v4(state->canvas.origin.x + i * state->camera.scale, 
