@@ -103,7 +103,7 @@ internal void Win32ProcessMessages(input *input)
 
 internal window_dimension GetWindowDimension(HWND window)
 {
-    window_dimension result;
+    window_dimension result = {0};
 
     RECT client_rect;
     GetClientRect(window, &client_rect);
@@ -142,10 +142,10 @@ internal void Win32DisplayBufferInWindow(HDC device_context,
                                          win32_offscreen_buffer *buffer)
 {
     StretchDIBits(device_context, 
-                 0, 0, window_width, window_height,
-                 0, 0, buffer->width, buffer->height, 
-                 buffer->memory, &buffer->info, 
-                 DIB_RGB_COLORS, SRCCOPY);
+                  0, 0, window_width, window_height,
+                  0, 0, buffer->width, buffer->height, 
+                  buffer->memory, &buffer->info, 
+                  DIB_RGB_COLORS, SRCCOPY);
 }
 
 LRESULT CALLBACK Win32WindowProc(HWND window, UINT message, 
@@ -181,6 +181,13 @@ LRESULT CALLBACK Win32WindowProc(HWND window, UINT message,
             EndPaint(window, &paint);
         } break;
 
+        case WM_SIZE: 
+        {
+            int width  = (int)LOWORD(l_param);
+            int height = (int)HIWORD(l_param);
+            Win32ResizeDIBSection(&Global_Backbuffer, width, height);
+        } break;
+
         default: 
         {
             result = DefWindowProcA(window, message, w_param, l_param);
@@ -213,13 +220,13 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE prev_instance,
     UINT desired_scheduler_ms = 1; 
     b32 sleep_is_granular = (timeBeginPeriod(desired_scheduler_ms) == TIMERR_NOERROR);
     
-    Win32ResizeDIBSection(&Global_Backbuffer, 1280, 720);
     WNDCLASSA window_class = {0};
 
     window_class.style = CS_HREDRAW | CS_VREDRAW;
     window_class.lpfnWndProc = Win32WindowProc;
     window_class.hInstance = instance;
     window_class.lpszClassName = "PixelateWindowClass";
+    window_class.hCursor = LoadCursor(NULL, IDC_ARROW);
 
     int moniter_refresh_hz = 60; 
     int game_update_hz = moniter_refresh_hz / 2;
@@ -236,19 +243,8 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE prev_instance,
         {
             // ToggleFullscreen(window);
 
-            DWORD dw_style = GetWindowLongPtr(window, GWL_STYLE);
-            DWORD dw_ex_style = GetWindowLongPtr( window, GWL_EXSTYLE);
-            RECT rect = { 0, 0, 1280, 720 };
-            AdjustWindowRectEx(&rect, dw_style, 0, dw_ex_style);
-            SetWindowPos(window, NULL, 0, 0, rect.right - rect.left, 
-                         rect.bottom - rect.top, 
-                         SWP_NOZORDER | SWP_NOMOVE);
-
-            window_dimension dimension = GetWindowDimension(window);
-            char str_buffer[256];
-            wsprintf(str_buffer, "%d, %d\n", dimension.width, dimension.height);
-            OutputDebugStringA(str_buffer);
-
+            // Win32ResizeDIBSection(&Global_Backbuffer, 1280, 720);
+    
             app_memory memory = {0};
             memory.storage_size = Megabytes(64); 
             memory.transient_storage_size = Megabytes(100);
