@@ -1,10 +1,8 @@
 #include "io.h"
 
-#if 0
-// NOTE: primitive code and will be changed
-internal debug_read_file_result DEBUGPlatformReadEntireFile(char *filename)
+internal read_file_result PlatformReadFile(char *filename)
 {
-    debug_read_file_result result = {0};
+    read_file_result result = {0};
 
     HANDLE file_handle = CreateFileA(filename, GENERIC_READ, 0, 0,
                                      OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
@@ -28,7 +26,7 @@ internal debug_read_file_result DEBUGPlatformReadEntireFile(char *filename)
                 else 
                 {
                     // TODO: logging
-                    DEBUGPlatformFreeFileMemory(result.memory);
+                    PlatformFreeFileMemory(result.memory);
                     result.memory = 0;
                 }
             } 
@@ -52,12 +50,12 @@ internal debug_read_file_result DEBUGPlatformReadEntireFile(char *filename)
     return result;
 }
 
-internal void DEBUGPlatformFreeFileMemory(void *memory)
+internal void PlatformFreeFileMemory(void *memory)
 {
     VirtualFree(memory, 0, MEM_RELEASE);
 }
 
-internal b32 DEBUGPlatformWriteFile(char *filename, u32 memory_size, void *memory)
+internal b32 PlatformWriteFile(char *filename, u32 memory_size, void *memory)
 {
     b32 result = 0;
 
@@ -85,6 +83,8 @@ internal b32 DEBUGPlatformWriteFile(char *filename, u32 memory_size, void *memor
 
     return result;
 }
+
+/*
 
 inline FILETIME Win32GetLastWriteTime(const char *filename)
 {
@@ -137,4 +137,4 @@ internal void Win32UnloadGameCode(win32_app_code *app_code)
     app_code->UpdateAndRender = 0;
     app_code->GetSoundSamples = 0;
 }
-#endif 
+*/

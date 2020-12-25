@@ -79,7 +79,7 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
                                                  memory->transient_storage_size);
         AllocateMemoryArena(&state->permanent_arena, sizeof(app_state));
 
-        state->current_mode = CANVAS_MODE_create;
+        state->current_mode = CANVAS_MODE_blank;
 
         memory->initialized = 1;
     }
@@ -131,7 +131,7 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
         if (index >= 0)
         {
             state->active_layer->buffer[index].filled = 1; 
-            state->active_layer->buffer[index].color = v3(0.f, 0.f, 0.f); 
+            state->active_layer->buffer[index].color = state->canvas.current_color; 
         }
     }
     else if (input->right_mouse_down && state->current_mode == CANVAS_MODE_edit)
@@ -189,22 +189,29 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
         GetCanvasSettings(buffer, state, input);
     }
 
-
     // UI for tools
     UIBeginFrame(&state->ui, buffer, input);
     {
         if (UIMenu(&state->ui, UIIDGen(), "Pixelate Menu",  
                    v4(0, 0, 50, 50), v4(50, 0, 100, 50)))
         {
-            if (UIButton(&state->ui, UIIDGen(), "Menu option 1"))
+            if (UIButton(&state->ui, UIIDGen(), "New Canvas"))
+            {
+                if (state->current_mode == CANVAS_MODE_blank)
+                {
+                    state->current_mode = CANVAS_MODE_create;
+                }
+            }
+
+            if (UIButton(&state->ui, UIIDGen(), "Save"))
             {
             }
 
-            if (UIButton(&state->ui, UIIDGen(), "Menu option 2"))
+            if (UIButton(&state->ui, UIIDGen(), "Load"))
             {
             }
 
-            if (UIButton(&state->ui, UIIDGen(), "Menu option 3"))
+            if (UIButton(&state->ui, UIIDGen(), "Export"))
             {
             }
         }

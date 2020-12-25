@@ -11,7 +11,7 @@ typedef enum canvas_mode
 
 typedef struct pixel
 {
-    v3 color; 
+    v4 color; 
     b32 filled; 
 } pixel;
 
