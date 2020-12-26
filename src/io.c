@@ -13,20 +13,21 @@ internal read_file_result PlatformReadFile(char *filename)
         if (GetFileSizeEx(file_handle, &file_size)) 
         {
             u32 file_size32 = SafeTruncateUInt64(file_size.QuadPart);
-            result.memory = VirtualAlloc(0, file_size32, 
-                                         MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-            if (result.memory) 
+            void *memory = VirtualAlloc(0, file_size32, 
+                                        MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+            if (memory) 
             {
                 DWORD bytes_read;
-                if (ReadFile(file_handle, result.memory, file_size32, &bytes_read, 0) && 
+                if (ReadFile(file_handle, memory, file_size32, &bytes_read, 0) && 
                     bytes_read == file_size32) 
                 {
                     result.size = file_size32;
+                    result.memory = memory;
                 } 
                 else 
                 {
                     // TODO: logging
-                    PlatformFreeFileMemory(result.memory);
+                    PlatformFreeFileMemory(memory);
                     result.memory = 0;
                 }
             } 

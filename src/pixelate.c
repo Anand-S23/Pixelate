@@ -73,7 +73,8 @@ internal void SaveCanvasData(app_state *state)
     // width, height, # of layers, layer data
     int num_layers = state->canvas.layers.size;
     write_buffer.size = (3 * sizeof(int)) + 
-        (state->canvas.width * state->canvas.height * sizeof(pixel) * num_layers);
+                        (state->canvas.width * state->canvas.height * 
+                        num_layers * (sizeof(u8) * 4 + sizeof(b32)));
 
     write_buffer.data = AllocateMemoryArena(&state->transient_arena, write_buffer.size);
 
@@ -95,19 +96,95 @@ internal void SaveCanvasData(app_state *state)
                 v4 pixel_color = layer[i + j * state->canvas.width].color;
                 b32 filled = layer[i + j * state->canvas.width].filled;
 
-                memcpy((u32 *)write_buffer.data + write_buffer.position, (void *)&pixel_color, sizeof(v4));
-                write_buffer.position += sizeof(v4);
-                memcpy((u32 *)write_buffer.data + write_buffer.position, (void *)&filled, sizeof(b32));
+                int a = (int)(pixel_color.a * 255);
+                int r = (int)(pixel_color.r * 255);
+                int g = (int)(pixel_color.g * 255);
+                int b = (int)(pixel_color.b * 255);
+
+                memcpy((u8 *)write_buffer.data + write_buffer.position, 
+                       (void *)&a, sizeof(u8));
+                write_buffer.position += sizeof(u8);
+                memcpy((u8 *)write_buffer.data + write_buffer.position, 
+                       (void *)&r, sizeof(u8));
+                write_buffer.position += sizeof(u8);
+                memcpy((u8 *)write_buffer.data + write_buffer.position, 
+                       (void *)&g, sizeof(u8));
+                write_buffer.position += sizeof(u8);
+                memcpy((u32 *)write_buffer.data + write_buffer.position, 
+                       (void *)&b, sizeof(u8));
+                write_buffer.position += sizeof(u8);
+                memcpy((b32 *)write_buffer.data + write_buffer.position, 
+                       (void *)&filled, sizeof(b32));
                 write_buffer.position += sizeof(b32);
             }
         }
     }
 
+    // TODO: Left user choose read
     PlatformWriteFile("data/test.bin", write_buffer.size, write_buffer.data);
 }
 
 internal void LoadCanvasData(app_state *state)
 {
+    // TODO: Let user choose load file
+    read_file_result file_read_buffer = PlatformReadFile("W:\\pixelate\\data\\test.bin");
+    u32 position = 0;
+
+    int num_layers;
+
+    *(int *)&state->canvas.width = 
+        *((int *)file_read_buffer.memory + position);
+    position += sizeof(int);
+
+    *(int *)&state->canvas.height = 
+        *((int *)file_read_buffer.memory + position);
+    position += sizeof(int);
+
+    *(int *)&num_layers = 
+        *((int *)file_read_buffer.memory + position);
+    position += sizeof(int);
+
+    for (int n = 0; n < num_layers; ++n)
+    {
+        pixel *layer = CreateLayer(state);
+        for (int j = 0; j < state->canvas.height; ++j)
+        {
+            for (int i = 0; i < state->canvas.width; ++i)
+            {
+                u8 a, r, g, b;
+                b32 filled;
+
+                *(u8 *)&a = *((u8 *)file_read_buffer.memory + position);
+                position += sizeof(u8);
+
+                *(u8 *)&r = *((u8 *)file_read_buffer.memory + position);
+                position += sizeof(u8);
+
+                *(u8 *)&g = *((u8 *)file_read_buffer.memory + position);
+                position += sizeof(u8);
+
+                *(u8 *)&b = *((u8 *)file_read_buffer.memory + position);
+                position += sizeof(u8);
+
+                v4 color = v4(((f32)r / 255.f), ((f32)g / 255.f), 
+                              ((f32)b / 255.f), ((f32)a / 255.f));
+
+                *(b32 *)&filled = 
+                    *((b32 *)file_read_buffer.memory + position);
+                position += sizeof(b32);
+
+                layer[i + j * state->canvas.width].color = color;
+                layer[i + j * state->canvas.width].filled = filled;
+            }
+        }
+        Append(&state->canvas.layers, layer);
+    }
+
+    PlatformFreeFileMemory(file_read_buffer.memory);
+    state->active_layer = state->canvas.layers.head;
+
+    // TODO: Set canvas/camera settings
+    state->camera.scale = 10;
 }
 
 internal void WriteCanvasDataToPNG(app_state *state)
@@ -261,6 +338,17 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
 
             if (UIButton(&state->ui, UIIDGen(), "Load"))
             {
+                if (state->current_mode == CANVAS_MODE_blank ||
+                    state->current_mode == CANVAS_MODE_create)
+                {
+                    LoadCanvasData(state);
+                    state->current_mode = CANVAS_MODE_edit;
+                }
+                else if (state->current_mode == CANVAS_MODE_edit)
+                {
+                    // TODO: Ask to save
+                    LoadCanvasData(state);
+                }
             }
 
             if (UIButton(&state->ui, UIIDGen(), "Export"))
