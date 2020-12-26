@@ -15,6 +15,15 @@ typedef struct pixel
     b32 filled; 
 } pixel;
 
+#define default_pixel_buffer_size 1024
+
+typedef struct pixel_buffer
+{
+    void *data; 
+    u32 position;
+    u32 size;
+} pixel_buffer;
+
 typedef struct app_camera
 {
     v2 offset; 

@@ -22,5 +22,6 @@ internal node *Append(linked_list *ll, pixel *data);
 internal pixel Pop(linked_list *ll);
 internal pixel PopLast(linked_list *ll);
 internal pixel Remove(linked_list *ll, int index);
+internal pixel *Get(linked_list *ll, int index);
 
 #endif

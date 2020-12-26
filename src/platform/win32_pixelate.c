@@ -243,8 +243,19 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE prev_instance,
         {
             // ToggleFullscreen(window);
 
-            // Win32ResizeDIBSection(&Global_Backbuffer, 1280, 720);
-    
+            DWORD dw_style = GetWindowLongPtr(window, GWL_STYLE);
+            DWORD dw_ex_style = GetWindowLongPtr( window, GWL_EXSTYLE);
+            RECT rect = { 0, 0, 1280, 720 };
+            AdjustWindowRectEx(&rect, dw_style, 0, dw_ex_style);
+            SetWindowPos(window, NULL, 0, 0, rect.right - rect.left, 
+                         rect.bottom - rect.top, 
+                         SWP_NOZORDER | SWP_NOMOVE);
+            
+            window_dimension dim = GetWindowDimension(window);
+            char str_buffer[256];
+            wsprintf(str_buffer, "%d %d %d %d\n", Global_Backbuffer.width, Global_Backbuffer.height, dim.width, dim.height);
+            OutputDebugStringA(str_buffer);
+
             app_memory memory = {0};
             memory.storage_size = Megabytes(64); 
             memory.transient_storage_size = Megabytes(100);
@@ -287,9 +298,9 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE prev_instance,
 
                 UpdateApp(&memory, &buffer, &input);
 
-                HDC device_context = GetDC(window);
                 window_dimension dimension = GetWindowDimension(window);
 
+                HDC device_context = GetDC(window);
                 Win32DisplayBufferInWindow(device_context,
                                            dimension.width, dimension.height,
                                            &Global_Backbuffer);

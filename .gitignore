@@ -1,3 +1,5 @@
 build\
 misc\
+.vs\
+.vscode\
 *.bat

@@ -119,3 +119,21 @@ internal pixel Remove(linked_list *ll, int index)
         }
     }
 }
+
+internal pixel *Get(linked_list *ll, int index)
+{
+    pixel *result = NULL;
+
+    if (index >= 0 && index < ll->size)
+    {
+        node *current = ll->head;
+        for (int i = 0; i < index; ++i)
+        {
+            current = current->next;
+        }
+
+        result = current->buffer;
+    }
+
+    return result;
+}
