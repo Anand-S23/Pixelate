@@ -9,12 +9,6 @@ typedef enum canvas_mode
     CANVAS_MODE_export
 } canvas_mode;
 
-typedef struct pixel
-{
-    v4 color; 
-    b32 filled; 
-} pixel;
-
 #define default_pixel_buffer_size 1024
 
 typedef struct pixel_buffer

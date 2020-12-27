@@ -3,7 +3,7 @@
 
 typedef struct node
 {
-    pixel *buffer;
+    u32 *buffer;
     struct node* next;
     struct node* prev;
 } node;
@@ -15,13 +15,13 @@ typedef struct linked_list
     int size;
 } linked_list;
 
-internal node *CreateNode(pixel *data);
+internal node *CreateNode(u32 *data);
 internal linked_list CreateLinkedList();
-internal node *Push(linked_list *ll, pixel *data);
-internal node *Append(linked_list *ll, pixel *data);
-internal pixel Pop(linked_list *ll);
-internal pixel PopLast(linked_list *ll);
-internal pixel Remove(linked_list *ll, int index);
-internal pixel *Get(linked_list *ll, int index);
+internal node *Push(linked_list *ll, u32 *data);
+internal node *Append(linked_list *ll, u32 *data);
+internal u32 Pop(linked_list *ll);
+internal u32 PopLast(linked_list *ll);
+internal u32 Remove(linked_list *ll, int index);
+internal u32 *Get(linked_list *ll, int index);
 
 #endif

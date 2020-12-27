@@ -38,20 +38,59 @@ internal void DrawFilledRect(offscreen_buffer *buffer,
               min_x * buffer->bytes_per_pixel + 
               min_y * buffer->pitch; 
 
-    for(i32 j = min_y; j < max_y; ++j)
+    u8 red   = (u8)(color.r * 255.f);
+    u8 green = (u8)(color.g * 255.f);
+    u8 blue  = (u8)(color.b * 255.f);
+    u8 alpha = (u8)(color.a * 255.f);
+
+    // TODO: Bi-linear blending for non-0 or non-255 alpha values
+    if (alpha > 0)
     {
-        u32 *pixel = (u32 *)row;
-        for(i32 i = min_x; i < max_x; ++i)
+        for(i32 j = min_y; j < max_y; ++j)
         {
-            u8 red   = (u8)(color.r * 255.f);
-            u8 green = (u8)(color.g * 255.f);
-            u8 blue  = (u8)(color.b * 255.f);
-            u8 alpha = (u8)(color.a * 255.f);
+            u32 *pixel = (u32 *)row;
+            for(i32 i = min_x; i < max_x; ++i)
+            {
 
-            *pixel++ = ((alpha << 24) | (red << 16) | (green << 8) | blue);
+                *pixel++ = ((alpha << 24) | (red << 16) | (green << 8) | blue);
+            }
+
+            row += buffer->pitch; 
         }
+    }
+}
 
-        row += buffer->pitch; 
+internal void DrawFilledRectU32(offscreen_buffer *buffer, 
+                                v4 rect, u32 color)
+{
+    i32 min_x = Max(0, (i32)rect.x);
+    i32 min_y = Max(0, (i32)rect.y);
+    i32 max_x = Min((buffer->width), (min_x + (i32)rect.width));
+    i32 max_y = Min((buffer->height), (min_y + (i32)rect.height));
+    
+    u8 *row = (u8 *)buffer->memory + 
+              min_x * buffer->bytes_per_pixel + 
+              min_y * buffer->pitch; 
+
+    u8 *color_channels = (u8 *)&color;
+    u8 red   = (u8)(color_channels[0]);
+    u8 green = (u8)(color_channels[1]);
+    u8 blue  = (u8)(color_channels[2]);
+    u8 alpha = (u8)(color_channels[3]);
+    
+    // TODO: Bi-linear blending for non-0 or non-255 alpha values
+    if (alpha > 0)
+    {
+        for(i32 j = min_y; j < max_y; ++j)
+        {
+            u32 *pixel = (u32 *)row;
+            for(i32 i = min_x; i < max_x; ++i)
+            {
+                *pixel++ = ((alpha << 24) | (red << 16) | (green << 8) | blue);
+            }
+
+            row += buffer->pitch; 
+        }
     }
 }
 
