@@ -50,13 +50,12 @@ internal void GetCanvasSettings(offscreen_buffer *buffer, app_state *state,
 {
     UIBeginFrame(&state->ui, buffer, input);
     {
-
-        UIBeginWindow(&state->ui, UIIDGen(), "Create a new image", v4(100, 100, 380, 280));
+        UIPannel(&state->ui, UIIDGen(), "Create a new image", v4(100, 100, 380, 280));
         {
-            local_persist int canvas_width = 5;
-            local_persist int canvas_height = 5;
+            local_persist int canvas_width = 64;
+            local_persist int canvas_height = 64;
             
-            if (UIButton(&state->ui, UIIDGen(), "Ok"))
+            if (UIPannelButton(&state->ui, UIIDGen(), "Ok", v4(0, 0, 75, 30)))
             {
                 state->canvas.width  = canvas_width; 
                 state->canvas.height = canvas_height; 
@@ -65,7 +64,7 @@ internal void GetCanvasSettings(offscreen_buffer *buffer, app_state *state,
                 state->current_mode = CANVAS_MODE_edit;
             }
         }
-        UIEndWindow(&state->ui);
+        UIEndPannel(&state->ui);
     }
     UIEndFrame(&state->ui);
 }
@@ -168,10 +167,10 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
     app_state *state = (app_state *)memory->storage;
     if (!memory->initialized)
     {
-        state->permanent_arena = InitMemoryArena(memory->storage, 
-                                                 memory->storage_size);
-        state->transient_arena = InitMemoryArena(memory->transient_storage, 
-                                                 memory->transient_storage_size);
+        state->permanent_arena = 
+            InitMemoryArena(memory->storage, memory->storage_size);
+        state->transient_arena = 
+            InitMemoryArena(memory->transient_storage, memory->transient_storage_size);
         AllocateMemoryArena(&state->permanent_arena, sizeof(app_state));
 
         state->current_mode = CANVAS_MODE_blank;
@@ -184,7 +183,8 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
     state->canvas.cursor.y = input->mouse_y - state->canvas.origin.y;
 
     // Move canvas around
-    if (input->middle_mouse_down && state->current_mode == CANVAS_MODE_edit)
+    if (input->middle_mouse_down && 
+        state->current_mode == CANVAS_MODE_edit)
     {
         if (state->camera.click_not_set) 
         {
@@ -207,7 +207,8 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
     }
 
     // Scale canvas
-    if (input->scroll_value == input->prev_scroll_value && state->current_mode == CANVAS_MODE_edit)
+    if (input->scroll_value == input->prev_scroll_value && 
+        state->current_mode == CANVAS_MODE_edit)
     {
         input->scroll_delta = 0; 
     }
@@ -217,7 +218,8 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
     }
 
     // Process drawing and erasing 
-    if (input->left_mouse_down && state->current_mode == CANVAS_MODE_edit)
+    if (input->left_mouse_down && 
+        state->current_mode == CANVAS_MODE_edit)
     {
         int index = GetIndexFromClick(state->canvas.cursor, 
                                       state->canvas.width, 
@@ -263,9 +265,9 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
                     }
 
                     DrawFilledRect(buffer, 
-                                    v4(state->canvas.origin.x + i * state->camera.scale, 
-                                        state->canvas.origin.y + j * state->camera.scale, 
-                                        state->camera.scale, state->camera.scale), color);
+                                   v4(state->canvas.origin.x + i * state->camera.scale, 
+                                      state->canvas.origin.y + j * state->camera.scale, 
+                                      state->camera.scale, state->camera.scale), color);
 
                     DrawFilledRectU32(buffer, 
                                       v4(state->canvas.origin.x + i * state->camera.scale, 
@@ -283,10 +285,13 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
     }
 
     // UI for tools
+    DrawFilledRect(buffer, v4(0, 0, buffer->width, 20), v4(0.5f, 0.5f, 0.5f, 1.f));
+    DrawFilledRect(buffer, v4(0, 1, buffer->width, 20), v4(0.8f, 0.8f, 0.8f, 1.f));
+
     UIBeginFrame(&state->ui, buffer, input);
     {
-        if (UIMenu(&state->ui, UIIDGen(), "Pixelate Menu",  
-                   v4(0, 0, 50, 50), v4(50, 0, 100, 50)))
+        if (UIButtonMenu(&state->ui, UIIDGen(), "Pixelate Menu",  
+                         v4(5, 1, 60, 20), v4(5, 20, 100, 20)))
         {
             if (UIButton(&state->ui, UIIDGen(), "New Canvas"))
             {
@@ -326,4 +331,5 @@ internal void UpdateApp(app_memory *memory, offscreen_buffer *buffer, input *inp
         UIPopColumn(&state->ui);
     }
     UIEndFrame(&state->ui);
+
 }

@@ -55,6 +55,27 @@ internal v4 UIGetNextAutoLayoutRect(ui *ui)
     return rect;
 }
 
+internal v4 UIGetPannelAutoLayoutRect(ui *ui, v4 rel_rect)
+{
+    v4 rect = {0};
+    
+    if(ui->auto_layout_stack_pos > 0)
+    {
+        u32 i = ui->auto_layout_stack_pos - 1;
+        
+        rect.x      = ui->auto_layout_stack[i].position.x + rel_rect.x;
+        rect.y      = ui->auto_layout_stack[i].position.y + rel_rect.y;
+        rect.width  = rel_rect.width;
+        rect.height = rel_rect.height;
+    }
+    else
+    {
+        // SoftAssert("Auto-layout attempted without proper auto-layout group." == 0);
+    }
+    
+    return rect;
+}
+
 internal void UIBeginFrame(ui *ui, offscreen_buffer *buffer, input *input)
 {
     ui->buffer = buffer;
@@ -78,7 +99,7 @@ internal void UIEndFrame(ui *ui)
         
         switch(widget->type)
         {
-            case UI_WIDGET_window: 
+            case UI_WIDGET_pannel: 
             {
                 v4 titlebar_rect = v4(widget->rect.x, widget->rect.y, widget->rect.width, 25);
                 DrawFilledRect(ui->buffer, widget->rect, v4(0.5f, 0.5f, 0.5f, 1.f));
@@ -134,13 +155,14 @@ internal void UIPopColumn(ui *ui)
     }
 }
 
-internal v4 UIWindowP(ui *ui, ui_id id, char *text, v4 rect)
+internal v4 UIPannelP(ui *ui, ui_id id, char *text, v4 rect)
 {
+
     b32 cursor_is_over = (ui->mouse_x >= rect.x &&
                           ui->mouse_x <= rect.x + rect.width &&
                           ui->mouse_y >= rect.y &&
                           ui->mouse_y <= rect.y + 25);
-    
+
     if (!UIIDEqual(ui->hot, id) && cursor_is_over)
     {
         ui->hot = id;
@@ -187,33 +209,33 @@ internal v4 UIWindowP(ui *ui, ui_id id, char *text, v4 rect)
     }
     
     ui_widget *widget = ui->widgets + ui->widget_count++;
-    widget->type = UI_WIDGET_window;
+    widget->type = UI_WIDGET_pannel;
     widget->id = id;
     widget->rect = rect;
 
     return rect;
 }
 
-internal void UIBeginWindow(ui *ui, ui_id id, char *text, v4 rect)
+internal void UIPannel(ui *ui, ui_id id, char *text, v4 rect)
 {
     local_persist b32 rect_set = 0;
     local_persist v4 window_rect = {0};
 
     if (!rect_set)
     {
-        window_rect = UIWindowP(ui, id, text, rect);
+        window_rect = UIPannelP(ui, id, text, rect);
         rect_set = 1;
     }
     else 
     {
-        window_rect = UIWindowP(ui, id, text, window_rect);
+        window_rect = UIPannelP(ui, id, text, window_rect);
     }
 
-    UIPushColumn(ui, v2(window_rect.x + 25, window_rect.y + 25), 
-                v2(window_rect.width - 50, 75));
+    UIPushColumn(ui, v2(window_rect.x, window_rect.y + 25), 
+                v2(window_rect.width, window_rect.height));
 }
 
-internal void UIEndWindow(ui *ui)
+internal void UIEndPannel(ui * ui)
 {
     UIPopColumn(ui);
 }
@@ -249,7 +271,7 @@ internal b32 UIMenuP(ui *ui, ui_id id, char *text, v4 rect)
     {
         if(!ui->left_mouse_down)
         {
-            is_open = (is_open == 0) ? 1 : 0; 
+            is_open = (is_open == 0) ? 1 : 0;
             ui->active = UIIDNull();
         }
     }
@@ -286,8 +308,8 @@ internal b32 UIMenuP(ui *ui, ui_id id, char *text, v4 rect)
     return is_open;
 }
 
-internal b32 UIMenu(ui *ui, ui_id id, char *text, 
-                    v4 button_rect, v4 menu_rect)
+internal b32 UIButtonMenu(ui *ui, ui_id id, char *text, 
+                          v4 button_rect, v4 menu_rect)
 {
     b32 is_open = UIMenuP(ui, id, text, button_rect);
     UIPushColumn(ui, v2(menu_rect.x, menu_rect.y), 
@@ -352,6 +374,12 @@ internal b32 UIButton(ui *ui, ui_id id, char *text)
 {
     v4 rect = UIGetNextAutoLayoutRect(ui);
     return UIButtonP(ui, id, text, rect);
+}
+
+internal b32 UIPannelButton(ui *ui, ui_id id, char *text, v4 rect)
+{
+    v4 window_rect = UIGetPannelAutoLayoutRect(ui, rect);
+    return UIButtonP(ui, id, text, window_rect);
 }
 
 internal f32 UISliderP(ui *ui, ui_id id, char *text, f32 value, v4 rect)

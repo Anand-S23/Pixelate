@@ -11,7 +11,7 @@
 
 typedef enum widget_type
 {
-    UI_WIDGET_window,
+    UI_WIDGET_pannel,
     UI_WIDGET_button,
     UI_WIDGET_slider
 } widget_type;
@@ -27,7 +27,6 @@ typedef struct window
     v4 rect; 
     b32 is_open;
 } window;
-
 
 typedef struct ui_widget
 {
