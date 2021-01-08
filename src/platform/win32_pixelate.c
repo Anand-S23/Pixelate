@@ -1,5 +1,6 @@
-#include <Windows.h> 
+#include <windows.h> 
 #include <stdint.h>
+#include <gl/gl.h>
 
 #include "win32_pixelate.h"
 #include "math.h"
@@ -113,6 +114,36 @@ internal window_dimension GetWindowDimension(HWND window)
     return result;
 }
 
+internal void Win32InitOpenGL(HWND window) 
+{
+    HDC window_dc = GetDC(window);
+
+    PIXELFORMATDESCRIPTOR pixel_format = {0};
+    pixel_format.nSize = sizeof(PIXELFORMATDESCRIPTOR);
+    pixel_format.nVersion = 1;
+    pixel_format.iPixelType = PFD_TYPE_RGBA;
+    pixel_format.dwFlags = PFD_SUPPORT_OPENGL | PFD_DRAW_TO_WINDOW | PFD_DOUBLEBUFFER;
+    pixel_format.cColorBits = 32;
+    pixel_format.cAlphaBits = 8;
+    pixel_format.iLayerType = PFD_MAIN_PLANE;
+
+    int suggested_format_index = ChoosePixelFormat(window_dc, &pixel_format);
+    PIXELFORMATDESCRIPTOR suggested_pixel_format;
+    DescribePixelFormat(window_dc, suggested_format_index, 
+                        sizeof(PIXELFORMATDESCRIPTOR), &suggested_pixel_format);
+    SetPixelFormat(window_dc, suggested_format_index, &suggested_pixel_format);
+
+    HGLRC gl_rc = wglCreateContext(window_dc);
+    if (wglMakeCurrent(window_dc, gl_rc))
+    {
+    }
+    else 
+    {
+        // TODO: Logging
+    }
+    ReleaseDC(window, window_dc);
+}
+
 internal void Win32ResizeDIBSection(win32_offscreen_buffer *buffer, 
                                     int width, int height)
 {
@@ -146,6 +177,66 @@ internal void Win32DisplayBufferInWindow(HDC device_context,
                   0, 0, buffer->width, buffer->height, 
                   buffer->memory, &buffer->info, 
                   DIB_RGB_COLORS, SRCCOPY);
+
+#if 0
+    // Note: Currently using old OpenGL, will switch to modren
+    glViewport(0, 0, window_width, window_height);
+
+    GLuint texture_handle = 0; 
+    local_persist b32 init_handle = 0; 
+    if (!init_handle)
+    {
+        glGenTextures(1, &texture_handle);
+    }
+
+    glBindTexture(GL_TEXTURE_2D, texture_handle);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, buffer->width, buffer->height,
+                 0, GL_BGRA_EXT, GL_UNSIGNED_BYTE, buffer->memory);
+    
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+
+    glEnable(GL_TEXTURE_2D);
+
+    glClearColor(0.f, 1.f, 1.f, 0.f);
+    glClear(GL_COLOR_BUFFER_BIT); 
+
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+
+    glBegin(GL_TRIANGLES);
+
+    // Note: lower triangle
+    glTexCoord2f(0.f, 0.f);
+    glVertex2f(-1.f, -1.f);
+
+    glTexCoord2f(1.f, 0.f);
+    glVertex2f(1.f, -1.f);
+
+    glTexCoord2f(1.f, 1.f);
+    glVertex2f(1.f, 1.f);
+
+    // Note: Upper triangle
+    glTexCoord2f(0.f, 0.f);
+    glVertex2f(-1.f, -1.f);
+
+    glTexCoord2f(0.f, 1.f);
+    glVertex2f(-1.f, 1.f);
+
+    glTexCoord2f(1.f, 1.f);
+    glVertex2f(1.f, 1.f);
+
+    glEnd();
+
+    SwapBuffers(device_context);
+#endif
 }
 
 LRESULT CALLBACK Win32WindowProc(HWND window, UINT message, 
@@ -242,6 +333,7 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE prev_instance,
         if (window)
         {
             // ToggleFullscreen(window);
+            Win32InitOpenGL(window);
 
             DWORD dw_style = GetWindowLongPtr(window, GWL_STYLE);
             DWORD dw_ex_style = GetWindowLongPtr( window, GWL_EXSTYLE);
