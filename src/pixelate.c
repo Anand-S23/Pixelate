@@ -55,7 +55,7 @@ internal void GetCanvasSettings(offscreen_buffer *buffer, app_state *state,
             local_persist int canvas_width = 64;
             local_persist int canvas_height = 64;
             
-            if (UIPannelButton(&state->ui, UIIDGen(), "Ok", v4(0, 0, 75, 30)))
+            if (UIPannelButton(&state->ui, UIIDGen(), "Ok", v4(152, 200, 75, 30)))
             {
                 state->canvas.width  = canvas_width; 
                 state->canvas.height = canvas_height; 
