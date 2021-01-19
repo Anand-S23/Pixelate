@@ -4,8 +4,8 @@ A basic pixel editor
 ![](pixelate.GIF)
 
 ## Technology Stack Used: 
-Made from scratch, written in C
-NOTE: SDL2 will be used for the linux port and stb_truetypes.h will be used for displaying text
+- Made from scratch, written in C
+- SDL2 will be used for the linux port and stb_truetypes.h will be used for displaying text
 
 ## Features:
 - **Canvas** - users are able to open a canvas, move it around, and draw and erase on it
