@@ -68,6 +68,8 @@ typedef struct ui
     
     ui_id hot;
     ui_id active;
+
+    ui_id open_menu;
 } ui;
 
 #endif

@@ -244,8 +244,7 @@ internal b32 UIMenuP(ui *ui, ui_id id, char *text, v4 rect)
 {
     Assert(ui->widget_count < UI_MAX_WIDGETS);
     
-    local_persist b32 is_open = 0;
-    local_persist b32 should_close = 0;
+    b32 is_open = UIIDEqual(ui->open_menu, id);
     
     b32 cursor_is_over = (ui->mouse_x >= rect.x &&
                           ui->mouse_x <= rect.x + rect.width &&
@@ -255,16 +254,17 @@ internal b32 UIMenuP(ui *ui, ui_id id, char *text, v4 rect)
     if (!UIIDEqual(ui->hot, id) && cursor_is_over)
     {
         ui->hot = id;
+
+        // If another menu is open cursor_is_over open_menu will change
+        if (!UIIDEqual(ui->open_menu, UIIDNull()))
+        {
+            ui->open_menu = id;
+        }
+                
     }
     else if (UIIDEqual(ui->hot, id) && !cursor_is_over)
     {
         ui->hot = UIIDNull();
-    }
-
-    if (should_close)
-    {
-        is_open = 0;
-        should_close = 0;
     }
     
     if (UIIDEqual(ui->active, id))
@@ -273,6 +273,11 @@ internal b32 UIMenuP(ui *ui, ui_id id, char *text, v4 rect)
         {
             is_open = (is_open == 0) ? 1 : 0;
             ui->active = UIIDNull();
+
+            if (!is_open)
+            {
+                ui->open_menu = UIIDNull();
+            }
         }
     }
     else if (UIIDEqual(ui->hot, id))
@@ -287,16 +292,7 @@ internal b32 UIMenuP(ui *ui, ui_id id, char *text, v4 rect)
         if (ui->left_mouse_down && is_open)
         {
             is_open = 0;
-        }
-    }
-    else if (!UIIDEqual(ui->hot, id))
-    {
-        if (ui->left_mouse_down && is_open)
-        {
-            if (!ui->left_mouse_down)
-            {
-                should_close = 1;
-            }
+            ui->open_menu = UIIDNull();
         }
     }
     
@@ -304,6 +300,11 @@ internal b32 UIMenuP(ui *ui, ui_id id, char *text, v4 rect)
     widget->type = UI_WIDGET_button;
     widget->id = id;
     widget->rect = rect;
+
+    if (is_open)
+    {
+        ui->open_menu = id;
+    }
     
     return is_open;
 }
@@ -349,6 +350,7 @@ internal b32 UIButtonP(ui *ui, ui_id id, char *text, v4 rect)
         {
             is_triggered = UIIDEqual(ui->hot, id);
             ui->active = UIIDNull();
+            ui->open_menu = UIIDNull();
         }
     }
     else
@@ -420,6 +422,7 @@ internal f32 UISliderP(ui *ui, ui_id id, char *text, f32 value, v4 rect)
         else
         {
             ui->active = UIIDNull();
+            ui->open_menu = UIIDNull();
         }
     }
     

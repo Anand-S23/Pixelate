@@ -25,9 +25,9 @@ internal u32 *CreateLayer(app_state *state)
 }
 
 internal void CreateCanvas(app_state *state, int buffer_width, 
-                           int buffer_height, b32 new)
+                           int buffer_height, b32 create_new)
 {
-    if (new)
+    if (create_new)
     {
         state->canvas.layers = CreateLinkedList();
         node *inital_layer = Push(&state->canvas.layers, CreateLayer(state));
