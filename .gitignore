@@ -1,5 +1,7 @@
 build\
 misc\
+old\
+Drift_Engine\
 .vs\
 .vscode\
 *.bat
