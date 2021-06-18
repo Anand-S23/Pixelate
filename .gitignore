@@ -1,7 +1,8 @@
-build\
-misc\
-old\
-Drift_Engine\
-.vs\
-.vscode\
+build/
+misc/
+old/
+Drift_Engine/
+external/
+data/
+.vs/
 *.bat

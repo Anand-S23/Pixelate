@@ -7,6 +7,40 @@
 
 global app_state *state;
 
+internal u32 *CreateLayerBuffer(v2 size)
+{
+    // TODO: switch to memory arena
+    u32 *result = (u32 *)malloc(size.width * size.height * sizeof(u32));
+    return result;
+}
+
+internal InitCanvas(canvas *canvas, v2 normal_size, f32 scale, v4 bc1, v4 bc2)
+{
+    layer new_layer = {0};
+    {
+        new_layer.buffer = CreateLayerBuffer(normal_size);
+        new_layer.index = 0;
+        new_layer.active = 1;
+        new_layer.alpha = 1.f;
+    }
+
+    canvas->normal_size = normal_size;
+    canvas->layers[0] = new_layer;
+    canvas->layer_count = 1;
+
+    canvas->dimension = v2((scale * canvas->normal_size.width),
+                           (scale * canvas->normal_size.height));
+
+    f32 canvas_x = platform->window_width / 2.f - canvas->dimension.width / 2.f; 
+    f32 canvas_y = platform->window_height / 2.f - canvas->dimension.height / 2.f;
+    canvas->origin = v2(canvas_x, canvas_y);
+
+    canvas->primary_color = v4(0.f, 0.f, 0.f, 1.f);
+    canvas->secondary_color = v4(1.f, 1.f, 1.f, 1.f);
+    canvas->background_color_1 = bc1;
+    canvas->background_color_2 = bc2;
+}
+
 internal int GetIndexFromClick(v2 app_cursor, int width, int height, int cell_dim)
 {
     int i = ((int)app_cursor.x - (int)app_cursor.x % cell_dim) / cell_dim; 
@@ -21,25 +55,12 @@ INIT_APP
     state = (app_state *)platform->storage;
     InitRenderer(&state->renderer);
 
-    int buffer_width = platform->window_width;
-    int buffer_height = platform->window_height;
-    state->current_mode = CANVAS_MODE_edit;
-    state->canvas.width = 64; 
-    state->canvas.height = 64; 
-    state->canvas.layers = CreateList();
-    u32 *layer = (u32 *)malloc(state->canvas.width * state->canvas.height * sizeof(u32));
-    Push(&state->canvas.layers, layer);
-    state->active_layer = state->canvas.layers.head;
-    int constraint = Min(state->canvas.width, state->canvas.height);
+    v2 normal_size = v2(64.f, 64.f);
+    int constraint = Min(normal_size.width, normal_size.height);
     state->camera.scale = (int)(1.0f / (f32)(constraint / 64 + 1) * 20);
-    state->canvas.dimension = v2((state->camera.scale * state->canvas.width), 
-                                 (state->camera.scale * state->canvas.height));
-
-    state->canvas.origin = v2(buffer_width / 2.0f - state->canvas.dimension.x / 2.0f, 
-                              buffer_height / 2.0f - state->canvas.dimension.y / 2.0f);
-
-    state->canvas.current_color = v4(0.f, 0.f, 0.f, 1.f);
-
+    InitCanvas(&state->canvas, normal_size, state->camera.scale,
+               v4(1.f, 1.f, 1.f, 1.f), v4(0.5f, 0.5f, 0.5f, 1.f));
+    state->current_mode = CANVAS_MODE_edit;
     platform->initialized = 1;
 }
 
@@ -75,70 +96,30 @@ UPDATE_APP
         state->camera.click_not_set = 1;
     }
 
-    // Process drawing and erasing 
-    if (platform->left_mouse_down && 
-        state->current_mode == CANVAS_MODE_edit)
-    {
-        int index = GetIndexFromClick(state->canvas.cursor, 
-                                      state->canvas.width, 
-                                      state->canvas.height, 
-                                      state->camera.scale);
-        if (index >= 0)
-        {
-            // state->active_layer->data[index] = u32_color(state->canvas.current_color); 
-        }
-    }
-    else if (platform->right_mouse_down && state->current_mode == CANVAS_MODE_edit)
-    {
-        int index = GetIndexFromClick(state->canvas.cursor, 
-                                      state->canvas.width,
-                                      state->canvas.height,
-                                      state->camera.scale);
-
-        if (index >= 0)
-        {
-            // state->active_layer->buffer[index] = u32_color(v4(0, 0, 0, 0)); 
-        }
-    }
-
-
     // Render
-    ClearScreen(v4(0.3f, 0.3f, 0.3f, 1.0f));
+    ClearScreen(v4(0.25f, 0.25f, 0.25f, 1.0f));
     BeginRenderer(&state->renderer, platform->window_width, platform->window_height);
 
-    if (state->current_mode == CANVAS_MODE_edit)
+    canvas *canvas = &state->canvas;
+    //RenderRect(&state->renderer, canvas->origin, canvas->dimension, v4(1, 1, 1, 1));
+
+    for (int j = 0; j < state->canvas.normal_size.width; ++j)
     {
-        for (int n = 0; n < state->canvas.layers.length; ++n)
+        for (int i = 0; i < state->canvas.normal_size.height; ++i)
         {
-            u32 *layer = Get(&state->canvas.layers, n);
-            for (int j = 0; j < state->canvas.width; ++j)
+            v4 color;
+            if (j % 2 == i % 2)
             {
-                for (int i = 0; i < state->canvas.height; ++i)
-                {
-                    v4 color;
-                    if (j % 2 == i % 2)
-                    {
-                        color = v4(0.6f, 0.6f, 0.6f, 1.f);
-                    }
-                    else 
-                    {
-                        color = v4(0.6f, 0.6f, 0.98f, 1.f);
-                    }
-
-                    RenderRect(&state->renderer,
-                               v2(state->canvas.origin.x + i * state->camera.scale, 
-                                  state->canvas.origin.y + j * state->camera.scale),
-                               v2(state->camera.scale, state->camera.scale), color);
-
-                    /*
-                    RenderRect(&state->renderer,
-                               v4(state->canvas.origin.x + i * state->camera.scale, 
-                                  state->canvas.origin.y + j * state->camera.scale),
-                               v2(state->camera.scale, state->camera.scale), 
-                               layer[i + j * state->canvas.width]);
-                    */
-                }
+                color = v4(0.6f, 0.6f, 0.6f, 1.f);
             }
+            else 
+            {
+                color = v4(0.6f, 0.6f, 0.98f, 1.f);
+            }
+
+            f32 size = state->camera.scale;
+            v2 pos = V2Add(state->canvas.origin, v2(i * size, j * size));
+            RenderRect(&state->renderer, pos, v2(size, size), color); 
         }
     }
 

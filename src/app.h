@@ -26,15 +26,29 @@ typedef struct app_camera
     v2 mouse_down_start; 
 } app_camera;
 
+typedef struct layer
+{
+    u32 *buffer;
+    u32 index;
+    b32 active;
+    f32 alpha;
+} layer;
+
+#define MAX_LAYER_COUNT 50
+
+// TODO: Move layer array to layer linked list
 typedef struct canvas
 {
-    linked_list layers;
-    int width; 
-    int height;
-    v2 dimension;
+    layer layers[MAX_LAYER_COUNT];
+    u32 layer_count;
+    v2 normal_size;
     v2 origin;
+    v2 dimension;
     v2 cursor;
-    v4 current_color;
+    v4 primary_color;
+    v4 secondary_color;
+    v4 background_color_1;
+    v4 background_color_2;
 } canvas;
 
 typedef struct app_state
@@ -45,7 +59,7 @@ typedef struct app_state
     ui ui;
     
     canvas canvas;
-    node *active_layer;
+    layer *active_layer;
     app_camera camera;
     canvas_mode current_mode;
 } app_state;
