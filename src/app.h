@@ -49,6 +49,7 @@ typedef struct canvas
     v4 secondary_color;
     v4 background_color_1;
     v4 background_color_2;
+    texture background;
 } canvas;
 
 typedef struct app_state

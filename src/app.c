@@ -14,7 +14,42 @@ internal u32 *CreateLayerBuffer(v2 size)
     return result;
 }
 
-internal InitCanvas(canvas *canvas, v2 normal_size, f32 scale, v4 bc1, v4 bc2)
+internal texture CreateBackgroundTexture(v2 dimension, v2 normal_size, int scale,
+                                         int bg_scale, v4 bg_color1, v4 bg_color2)
+{
+    texture_buffer buffer;
+    InitTextureBuffer(&buffer, dimension.width, dimension.height);
+    ClearTextureBuffer(&buffer, v4(0.f, 0.f, 0.f, 1.f));
+
+    int cell_size = scale * bg_scale;
+    for (int j = 0; j < (int)(normal_size.height / bg_scale) + 1; ++j)
+    {
+        for (int i = 0; i < (int)(normal_size.width / bg_scale) + 1; ++i)
+        {
+            v4 color;
+            if (i % 2 == j % 2)
+            {
+                // Default color: v4(0.6f, 0.6f, 0.6f, 1.f);
+                color = bg_color1;
+            }
+            else 
+            {
+                // Default color: v4(0.6f, 0.6f, 0.98f, 1.f);
+                color = bg_color2;
+            }
+
+            RenderRectToBuffer(&buffer, v2(i * cell_size, j * cell_size),
+                               v2(cell_size, cell_size), color);
+        }
+    }
+
+    ReverseBuffer((u8 *)buffer.memory, buffer.width, buffer.height);
+    texture tex = CreateTextureFromData(buffer.memory, buffer.width, buffer.height);
+    free(buffer.memory);
+    return tex;
+}
+
+internal void InitCanvas(canvas *canvas, v2 normal_size, f32 scale, v4 bc1, v4 bc2, int bg_scale)
 {
     layer new_layer = {0};
     {
@@ -39,6 +74,9 @@ internal InitCanvas(canvas *canvas, v2 normal_size, f32 scale, v4 bc1, v4 bc2)
     canvas->secondary_color = v4(1.f, 1.f, 1.f, 1.f);
     canvas->background_color_1 = bc1;
     canvas->background_color_2 = bc2;
+
+    canvas->background = CreateBackgroundTexture(canvas->dimension, normal_size,
+                                                 scale, bg_scale, bc1, bc2);
 }
 
 internal int GetIndexFromClick(v2 app_cursor, int width, int height, int cell_dim)
@@ -59,7 +97,7 @@ INIT_APP
     int constraint = Min(normal_size.width, normal_size.height);
     state->camera.scale = (int)(1.0f / (f32)(constraint / 64 + 1) * 20);
     InitCanvas(&state->canvas, normal_size, state->camera.scale,
-               v4(1.f, 1.f, 1.f, 1.f), v4(0.5f, 0.5f, 0.5f, 1.f));
+               v4(0.6f, 0.6f, 0.6f, 1.f), v4(0.6f, 0.6f, 1.f, 1.f), 4);
     state->current_mode = CANVAS_MODE_edit;
     platform->initialized = 1;
 }
@@ -103,23 +141,13 @@ UPDATE_APP
     canvas *canvas = &state->canvas;
     //RenderRect(&state->renderer, canvas->origin, canvas->dimension, v4(1, 1, 1, 1));
 
+    RenderTexture(&state->renderer, canvas->origin,
+                  canvas->dimension, &canvas->background);
+
     for (int j = 0; j < state->canvas.normal_size.width; ++j)
     {
         for (int i = 0; i < state->canvas.normal_size.height; ++i)
         {
-            v4 color;
-            if (j % 2 == i % 2)
-            {
-                color = v4(0.6f, 0.6f, 0.6f, 1.f);
-            }
-            else 
-            {
-                color = v4(0.6f, 0.6f, 0.98f, 1.f);
-            }
-
-            f32 size = state->camera.scale;
-            v2 pos = V2Add(state->canvas.origin, v2(i * size, j * size));
-            RenderRect(&state->renderer, pos, v2(size, size), color); 
         }
     }
 
