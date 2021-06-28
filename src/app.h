@@ -32,14 +32,13 @@ typedef struct layer
     u32 index;
     b32 active;
     f32 alpha;
+    b32 update_required;
+    texture texture;
 } layer;
 
-#define MAX_LAYER_COUNT 50
-
-// TODO: Move layer array to layer linked list
 typedef struct canvas
 {
-    layer layers[MAX_LAYER_COUNT];
+    linked_list layers;
     u32 layer_count;
     v2 normal_size;
     v2 origin;
